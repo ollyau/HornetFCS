@@ -17,20 +17,23 @@ double ClipValue(double input, double min, double max)
 double PIDController::Calculate(double processVariable, double setPoint, double deltaTime)
 {
     double currentError = setPoint - processVariable;
-    double integral = (currentError + m_previousError) * deltaTime / 2.0;
+    double dt = (currentError + m_previousError) * deltaTime / 2.0; // trapezoidal
 
     double P = m_Kp * currentError;
-    double I = m_Ki * (integral + m_totalError); // trapezoidal
+    double I = m_Ki * (m_cumulativeError + dt);
     double D = m_Kd * (currentError - m_previousError) / deltaTime;
 
-    if (std::abs(I) > m_integralMax) {
+    if (I > m_integralMax)
+    {
         I = m_integralMax;
     }
-    else if (I < m_integralMin) {
+    else if (I < m_integralMin)
+    {
         I = m_integralMin;
     }
-    else {
-        m_totalError += integral;
+    else
+    {
+        m_cumulativeError += dt;
     }
 
     double output = P + I + D;
@@ -48,5 +51,5 @@ double PIDController::Calculate(double processVariable, double setPoint, double 
 void PIDController::ResetError()
 {
     m_previousError = 0.0;
-    m_totalError = 0.0;
+    m_cumulativeError = 0.0;
 }
