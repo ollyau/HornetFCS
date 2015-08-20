@@ -8,7 +8,9 @@ static enum EVENT_ID
     EVENT_6HZ,
     EVENT_AXIS_ELEVATOR_SET,
     EVENT_AXIS_RUDDER_SET,
-    EVENT_AXIS_AILERONS_SET
+    EVENT_AXIS_AILERONS_SET,
+    EVENT_AXIS_THROTTLE_SET,
+    EVENT_AUTO_THROTTLE_ARM
 #ifndef NDEBUG
     ,
     EVENT_RESERVED_KEY_REQUEST,
@@ -17,7 +19,7 @@ static enum EVENT_ID
 };
 
 static enum GROUP_ID {
-    GROUP_FLIGHT_CONTROLS,
+    GROUP_FLIGHT_CONTROLS
 };
 
 static enum DATA_DEFINE_ID
@@ -25,7 +27,8 @@ static enum DATA_DEFINE_ID
     DEFINITION_FLIGHT_DATA,
     DEFINITION_FLAP_HANDLE,
     DEFINITION_FLAPS,
-    DEFINITION_ELEVATOR_TRIM
+    DEFINITION_ELEVATOR_TRIM,
+    DEFINITION_AUTO_THROTTLE
 };
 
 static enum DATA_REQUEST_ID
@@ -33,6 +36,7 @@ static enum DATA_REQUEST_ID
     REQUEST_AIR_FILE,
     REQUEST_FLIGHT_DATA,
     REQUEST_FLAP_HANDLE,
+    REQUEST_AUTO_THROTTLE
 };
 
 struct Flaps
@@ -58,6 +62,7 @@ struct FlightData
     double LeadingFlapsLeft;
     double LeadingFlapsRight;
     double AileronTrimPercent;
+    float BankDegrees;
     float HydraulicPressure1;
     float HydraulicPressure2;
     float ApuPercent;

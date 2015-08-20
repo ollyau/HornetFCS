@@ -7,7 +7,7 @@
 #include <string>
 #include <utility>
 
-//#define DATA_GAUGE_ENABLED
+#define DATA_GAUGE_ENABLED
 
 namespace FCS
 {
@@ -28,6 +28,15 @@ enum class Mode
     OnGround,
     PoweredApproach,
     UpAndAway
+};
+
+//-----------------------------------------------------------------------------
+
+enum class ATCMode
+{
+    Disabled,
+    Approach,
+    Cruise
 };
 
 //-----------------------------------------------------------------------------
@@ -54,10 +63,13 @@ public:
     bool SetElevator(long stickY);
     bool SetAileron(long stickX);
     bool SetRudder(long stickZ);
+    std::pair<bool, bool> SetThrottle(long slider);
     void SetFlapSelection(int flapSelection);
+    void SetAutoThrottleArm(int autoThrottleArmed);
 
     std::pair<State, State> SetState(FlightData* fd);
     std::pair<bool, double> SetMode();
+    std::pair<bool, double> SetAutoThrottle();
     void Update6Hz();
 
     //State GetMainState() const { return m_mainState; }
@@ -84,10 +96,16 @@ private:
     PIDController::Ptr m_levelFlight;
     PIDController::Ptr m_roll;
     PIDController::Ptr m_sideslip;
+    PIDController::Ptr m_throttleApproach;
+    PIDController::Ptr m_throttleCruise;
 
     State m_mainState;
     State m_yawState;
     Mode m_mode;
+
+    ATCMode m_atcMode;
+    double m_atcSpeed;
+    long m_atcSlider;
 
     bool m_cfgValid;
 
@@ -99,9 +117,11 @@ private:
     long m_stickX;
     long m_stickY;
     long m_stickZ;
+    long m_slider;
     int m_flapSelection;
 
     NamedVar::Ptr m_spinSwitch;
+    NamedVar::Ptr m_atcSwitch;
 
     const double FLAP_PER_SEC = 0.2;
     const double MIN_TARGET_DELTA = 0.05;

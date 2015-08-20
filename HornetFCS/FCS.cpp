@@ -32,6 +32,17 @@ char* ModeLookup(Mode mode)
     }
 }
 
+char* ATCModeLookup(ATCMode mode)
+{
+    switch (mode)
+    {
+    case ATCMode::Disabled: return "Disabled";
+    case ATCMode::Approach: return "Approach";
+    case ATCMode::Cruise: return "Cruise";
+    default: return "Unknown ATCMode::Mode value";
+    }
+}
+
 #endif
 
 //-----------------------------------------------------------------------------
@@ -182,6 +193,8 @@ m_cStar(std::make_shared<PIDController>(0, 0, 0, -100, 100)),
 m_levelFlight(std::make_shared<PIDController>(0, 0, 0, -100, 100)),
 m_roll(std::make_shared<PIDController>(0, 0, 0, -100, 100)),
 m_sideslip(std::make_shared<PIDController>(0, 0, 0, -100, 100)),
+m_throttleApproach(std::make_shared<PIDController>(0, 0, 0, 0, 100)),
+m_throttleCruise(std::make_shared<PIDController>(0, 0, 0, 0, 100)),
 m_gScalar(0.0),
 m_pitchScalar(0.0),
 m_aoaScalar(0.0),
@@ -189,13 +202,18 @@ m_highAoAScalar(0.0),
 m_mainState(State::PassThrough),
 m_yawState(State::PassThrough),
 m_mode(Mode::OnGround),
+m_atcMode(ATCMode::Disabled),
 m_stickX(0),
 m_stickY(0),
 m_stickZ(0),
+m_slider(0),
 m_spinSwitch(std::make_shared<NamedVar>("switch_spin")),
+m_atcSwitch(std::make_shared<NamedVar>("ATC_INIT")),
 m_cfgValid(false),
 frameRate(-1.0f),
-m_flapSelection(0)
+m_flapSelection(0),
+m_atcSpeed(0.0),
+m_atcSlider(0)
 {}
 
 FBW::~FBW() {}
@@ -206,6 +224,8 @@ bool FBW::InitializeData(std::string const& cfgPath)
     auto szLevelFlight = Utils::ReadIni(cfgPath, "HornetFCS", "LevelFlight");
     auto szRoll = Utils::ReadIni(cfgPath, "HornetFCS", "Aileron");
     auto szSideslip = Utils::ReadIni(cfgPath, "HornetFCS", "Sideslip");
+    auto szThrottleApproach = Utils::ReadIni(cfgPath, "HornetFCS", "ThrottleApproach");
+    auto szThrottleCruise = Utils::ReadIni(cfgPath, "HornetFCS", "ThrottleCruise");
 
     auto pitchRate = Utils::ReadIni(cfgPath, "HornetFCS", "PitchRateScalar");
     auto GForce = Utils::ReadIni(cfgPath, "HornetFCS", "GForceScalar");
@@ -216,13 +236,17 @@ bool FBW::InitializeData(std::string const& cfgPath)
     auto levelFlightVec = Utils::SplitAndParse(szLevelFlight, std::wstring(L","));
     auto rollVec = Utils::SplitAndParse(szRoll, std::wstring(L","));
     auto sideslipVec = Utils::SplitAndParse(szSideslip, std::wstring(L","));
+    auto throttleApproachVec = Utils::SplitAndParse(szThrottleApproach, std::wstring(L","));
+    auto throttleCruiseVec = Utils::SplitAndParse(szThrottleCruise, std::wstring(L","));
 
-    if (cStarVec.size() == 3 && sideslipVec.size() == 3 && rollVec.size() == 3 && levelFlightVec.size() == 3)
+    if (cStarVec.size() == 3 && sideslipVec.size() == 3 && rollVec.size() == 3 && levelFlightVec.size() == 3 && throttleApproachVec.size() == 3 && throttleCruiseVec.size() == 3))
     {
         m_cStar = std::make_shared<PIDController>(cStarVec[0], cStarVec[1], cStarVec[2], -100.0, 100.0);
         m_levelFlight = std::make_shared<PIDController>(levelFlightVec[0], levelFlightVec[1], levelFlightVec[2], -100.0, 100.0);
         m_roll = std::make_shared<PIDController>(rollVec[0], rollVec[1], rollVec[2], -100.0, 100.0);
         m_sideslip = std::make_shared<PIDController>(sideslipVec[0], sideslipVec[1], sideslipVec[2], -100.0, 100.0);
+        m_throttle = std::make_shared<PIDController>(throttleApproachVec[0], throttleApproachVec[1], throttleApproachVec[2], 0.0, 100.0);
+        m_throttle = std::make_shared<PIDController>(throttleCruiseVec[0], throttleCruiseVec[1], throttleCruiseVec[2], 0.0, 100.0);
         m_gScalar = std::stod(GForce);
         m_pitchScalar = std::stod(pitchRate);
         m_aoaScalar = std::stod(aoa);
@@ -297,9 +321,30 @@ bool FBW::SetRudder(long stickZ)
     }
 }
 
+std::pair<bool, bool> FBW::SetThrottle(long slider)
+{
+    m_slider = slider;
+    if (m_atcMode == ATCMode::Disabled)
+    {
+        return std::make_pair(true, false);
+    }
+    else if (abs(slider - m_atcSlider) > 3239L) // 3238.6 is 10% of -16193 +16193 range
+    {
+        m_atcSwitch->Set(0.0);
+        m_atcMode = ATCMode::Disabled;
+        return std::make_pair(true, true);
+    }
+    return std::make_pair(false, false);
+}
+
 void FBW::SetFlapSelection(int flapSelection)
 {
     m_flapSelection = flapSelection;
+}
+
+void FBW::SetAutoThrottleArm(int autoThrottleArmed)
+{
+    m_atcSwitch->Set(autoThrottleArmed);
 }
 
 void FBW::Update6Hz()
@@ -311,6 +356,14 @@ void FBW::Update6Hz()
         m_levelFlight->ResetError();
         m_roll->ResetError();
         m_sideslip->ResetError();
+        m_throttleApproach->ResetError();
+        m_throttleCruise->ResetError();
+    }
+
+    auto atcResult = m_atcSwitch->Update();
+    if (atcResult.first && !atcResult.second)
+    {
+        m_atcMode = ATCMode::Disabled;
     }
 }
 
@@ -367,6 +420,67 @@ std::pair<bool, double> FBW::SetMode()
     return std::make_pair(false, 0.0);
 }
 
+std::pair<bool, double> FBW::SetAutoThrottle()
+{
+    if (!m_atcSwitch->Get())
+    {
+        return std::make_pair(false, 0.0);
+    }
+    switch (m_atcMode)
+    {
+    case ATCMode::Disabled:
+    {
+        // switch is on; check for conditions to turn on autothrottle
+        auto flapDeg = m_flightData->TrailingFlapsLeft * 45.0;
+        if (m_flapSelection == 0)
+        {
+            m_throttleCruise->ResetError();
+            m_atcMode = ATCMode::Cruise;
+            m_atcSlider = m_slider;
+            m_atcSpeed = m_flightData->AirspeedTrue;
+        }
+        else if (m_flapSelection > 0 && flapDeg >= 27.0)
+        {
+            m_throttleApproach->ResetError();
+            m_atcMode = ATCMode::Approach;
+            m_atcSlider = m_slider;
+        }
+        return std::make_pair(false, 0.0);
+    }
+    case ATCMode::Cruise:
+    {
+        if (m_flapSelection > 0 || m_mainState == State::PassThrough || !!m_flightData->SimOnGround)
+        {
+            m_atcSwitch->Set(0.0);
+            m_atcMode = ATCMode::Disabled;
+            return std::make_pair(false, 1.0);
+        }
+        else
+        {
+            // throttle range is -16193 +16193
+            // linear fit {{0,-16193},{50,0},{100,16193}} -> -16193 + 323.86 x
+            auto result = (m_throttleCruise->Calculate(m_flightData->AirspeedTrue, m_atcSpeed, 1.0 / frameRate) * 323.86) - 16193;
+            return std::make_pair(true, result);
+        }
+    }
+    case ATCMode::Approach:
+    {
+        auto flapDeg = m_flightData->TrailingFlapsLeft * 45.0;
+        if (m_flapSelection == 0 || flapDeg < 27.0 || !!m_flightData->SimOnGround || abs(m_flightData->BankDegrees) > 70.0f || m_mainState == State::PassThrough) // gain ORIDE?
+        {
+            m_atcSwitch->Set(0.0);
+            m_atcMode = ATCMode::Disabled;
+            return std::make_pair(false, 1.0);
+        }
+        else
+        {
+            auto result = (m_throttleApproach->Calculate(m_flightData->AngleOfAttack, 8.1, 1.0 / frameRate) * 323.86) - 16193;
+            return std::make_pair(true, result);
+        }
+    }
+    }
+    return std::make_pair(false, 0.0);
+}
 
 double FBW::GetCurrentElevator()
 {
@@ -557,15 +671,26 @@ Aileron (P=%f, I=%f, D=%f)
 previous error %f
 total error %f
 
+Throttle Approach (P=%f, I=%f, D=%f)
+previous error %f
+total error %f
+
+Throttle Cruise (P=%f, I=%f, D=%f)
+previous error %f
+total error %f
+
 FCS State %s
 FCS Rudder State %s
 FCS Mode %s
+ATC Mode %s
 
 Stick X %d
 Stick Y %d
 Stick Z %d
+Slider %d
 Flaps %d
 Spin Switch %f
+ATC Switch %f
 
 TAS (knots) %f
 AoA (degrees) %f
@@ -599,15 +724,30 @@ std::string FBW::ToString()
         m_roll->GetPreviousError(),
         m_roll->GetTotalError(),
 
+        m_throttleApproach->GetKp(),
+        m_throttleApproach->GetKi(),
+        m_throttleApproach->GetKd(),
+        m_throttleApproach->GetPreviousError(),
+        m_throttleApproach->GetTotalError(),
+
+        m_throttleCruise->GetKp(),
+        m_throttleCruise->GetKi(),
+        m_throttleCruise->GetKd(),
+        m_throttleCruise->GetPreviousError(),
+        m_throttleCruise->GetTotalError(),
+
         StateLookup(m_mainState),
         StateLookup(m_yawState),
         ModeLookup(m_mode),
+        ATCModeLookup(m_atcMode),
 
         m_stickX,
         m_stickY,
         m_stickZ,
+        m_slider,
         m_flapSelection,
         m_spinSwitch->Get(),
+        m_atcSwitch->Get(),
 
         m_flightData->AirspeedTrue,
         m_flightData->AngleOfAttack,
