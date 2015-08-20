@@ -132,10 +132,10 @@ double ElevatorGForce(long elevatorPos, bool limitG, double offset)
 
 double AileronRollRate(long aileronPos, double offset)
 {
-    // quintic fit {{-100,-240},{-50,-60},{0,0},{50,60},{100,240}}
-    // 0.8 x + 0.00016 x^3
+    // quintic fit {{-100,-240},{-50,-45},{0,0},{50,45},{100,240}}
+    // 0.4 x + 0.0002 x^3
     auto val = static_cast<double>(aileronPos) / 163.83;
-    return (0.8 * val) + (0.00016 * val * val * val) + offset;
+    return (0.4 * val) + (0.0002 * val * val * val) + offset;
 }
 
 double HighAoA(long elevatorPos, double offset)
@@ -544,7 +544,15 @@ double FBW::GetCurrentElevator()
 
 double FBW::GetCurrentAileron()
 {
-    return m_roll->Calculate(m_flightData->RollRate, AileronRollRate(m_stickX, m_flightData->AileronTrimPercent * 60.0), 1.0 / frameRate) * 163.83;
+    auto rollRate = AileronRollRate(m_stickX, m_flightData->AileronTrimPercent * 60.0);
+
+    if (m_mode == Mode::PoweredApproach)
+    {
+        if (rollRate > 180.0) { rollRate = 180.0; }
+        else if (rollRate < -180.0) { rollRate = -180.0; }
+    }
+
+    return m_roll->Calculate(m_flightData->RollRate, rollRate, 1.0 / frameRate) * 163.83;
 }
 
 double FBW::GetCurrentRudder()
