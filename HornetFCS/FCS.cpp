@@ -193,8 +193,8 @@ m_cStar(std::make_shared<PIDController>(0, 0, 0, -100, 100)),
 m_levelFlight(std::make_shared<PIDController>(0, 0, 0, -100, 100)),
 m_roll(std::make_shared<PIDController>(0, 0, 0, -100, 100)),
 m_sideslip(std::make_shared<PIDController>(0, 0, 0, -100, 100)),
-m_throttleApproach(std::make_shared<PIDController>(0, 0, 0, 0, 80)),
-m_throttleCruise(std::make_shared<PIDController>(0, 0, 0, 0, 80)),
+m_throttleApproach(std::make_shared<PIDController>(0, 0, 0, -100, 60)),
+m_throttleCruise(std::make_shared<PIDController>(0, 0, 0, -100, 60)),
 m_gScalar(0.0),
 m_pitchScalar(0.0),
 m_aoaScalar(0.0),
@@ -245,8 +245,8 @@ bool FBW::InitializeData(std::string const& cfgPath)
         m_levelFlight = std::make_shared<PIDController>(levelFlightVec[0], levelFlightVec[1], levelFlightVec[2], -100.0, 100.0);
         m_roll = std::make_shared<PIDController>(rollVec[0], rollVec[1], rollVec[2], -100.0, 100.0);
         m_sideslip = std::make_shared<PIDController>(sideslipVec[0], sideslipVec[1], sideslipVec[2], -100.0, 100.0);
-        m_throttleApproach = std::make_shared<PIDController>(throttleApproachVec[0], throttleApproachVec[1], throttleApproachVec[2], 0.0, 80.0);
-        m_throttleCruise = std::make_shared<PIDController>(throttleCruiseVec[0], throttleCruiseVec[1], throttleCruiseVec[2], 0.0, 80.0);
+        m_throttleApproach = std::make_shared<PIDController>(throttleApproachVec[0], throttleApproachVec[1], throttleApproachVec[2], -100.0, 60.0);
+        m_throttleCruise = std::make_shared<PIDController>(throttleCruiseVec[0], throttleCruiseVec[1], throttleCruiseVec[2], -100.0, 60.0);
         m_gScalar = std::stod(GForce);
         m_pitchScalar = std::stod(pitchRate);
         m_aoaScalar = std::stod(aoa);
@@ -328,7 +328,7 @@ bool FBW::SetThrottle(long slider)
     {
         return true;
     }
-    else if (abs(slider - m_atcSlider) > 3239L) // 3238.6 is 10% of -16193 +16193 range
+    else if (abs(slider - m_atcSlider) > 3277L) // 3276.6 is 10% of -16383 +16383 range
     {
         m_atcSwitch->Set(0.0);
         return true;
@@ -467,9 +467,7 @@ std::pair<bool, double> FBW::SetAutoThrottle()
         }
         else
         {
-            // throttle range is -16193 +16193
-            // linear fit {{0,-16193},{50,0},{100,16193}} -> -16193 + 323.86 x
-            auto result = (m_throttleCruise->Calculate(m_flightData->AirspeedTrue, m_atcSpeed, 1.0 / frameRate) * 323.86) - 16193;
+            auto result = m_throttleCruise->Calculate(m_flightData->AirspeedTrue, m_atcSpeed, 1.0 / frameRate) * 163.83;
             return std::make_pair(true, result);
         }
     }
@@ -483,7 +481,7 @@ std::pair<bool, double> FBW::SetAutoThrottle()
         }
         else
         {
-            auto result = (m_throttleApproach->Calculate(8.1, m_flightData->AngleOfAttack, 1.0 / frameRate) * 323.86) - 16193;
+            auto result = m_throttleApproach->Calculate(8.1, m_flightData->AngleOfAttack, 1.0 / frameRate) * 163.83;
             return std::make_pair(true, result);
         }
     }
