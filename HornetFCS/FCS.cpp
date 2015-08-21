@@ -579,7 +579,7 @@ TAS (knots) %f
 AoA (degrees) %f
 G force %f)";
 
-std::string FBW::ToString()
+std::string FBW::ToString() const
 {
     char buf[2048];
     sprintf_s(buf, sizeof(buf), fmt,

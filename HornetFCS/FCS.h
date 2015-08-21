@@ -72,7 +72,7 @@ public:
 
     float frameRate;
 #ifdef DATA_GAUGE_ENABLED
-    std::string ToString();
+    std::string ToString() const;
 #endif
 
 private:
