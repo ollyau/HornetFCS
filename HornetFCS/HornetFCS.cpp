@@ -380,6 +380,24 @@ void Open()
     hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_FLIGHT_CONTROLS, EVENT_AUTO_THROTTLE_ARM, true);
     hr = SimConnect_SetNotificationGroupPriority(hSimConnect, GROUP_FLIGHT_CONTROLS, SIMCONNECT_GROUP_PRIORITY_HIGHEST_MASKABLE);
 
+    hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_THROTTLE_CUT, "THROTTLE_CUT");
+    hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_THROTTLE_DECR, "THROTTLE_DECR");
+    hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_THROTTLE_DECR_SMALL, "THROTTLE_DECR_SMALL");
+    hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_THROTTLE_INCR, "THROTTLE_INCR");
+    hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_THROTTLE_INCR_SMALL, "THROTTLE_INCR_SMALL");
+    hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_THROTTLE_FULL, "THROTTLE_FULL");
+    hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_INCREASE_THROTTLE, "INCREASE_THROTTLE");
+    hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_DECREASE_THROTTLE, "DECREASE_THROTTLE");
+    hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_THROTTLE, EVENT_THROTTLE_CUT);
+    hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_THROTTLE, EVENT_THROTTLE_DECR);
+    hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_THROTTLE, EVENT_THROTTLE_DECR_SMALL);
+    hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_THROTTLE, EVENT_THROTTLE_INCR);
+    hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_THROTTLE, EVENT_THROTTLE_INCR_SMALL);
+    hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_THROTTLE, EVENT_THROTTLE_FULL);
+    hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_THROTTLE, EVENT_INCREASE_THROTTLE);
+    hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_THROTTLE, EVENT_DECREASE_THROTTLE);
+    hr = SimConnect_SetNotificationGroupPriority(hSimConnect, GROUP_THROTTLE, SIMCONNECT_GROUP_PRIORITY_HIGHEST);
+
     hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_SIM_START, "SimStart");
 }
 
@@ -543,9 +561,19 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV* pData, DWORD cbData, void *pC
         case EVENT_AUTO_THROTTLE_ARM:
             fbw->ToggleAutoThrottle();
             return;
-            //default:
-            //    //SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, evt->uEventID, evt->dwData, SIMCONNECT_GROUP_PRIORITY_STANDARD, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
-            //    break;
+        case EVENT_THROTTLE_CUT:
+        case EVENT_THROTTLE_DECR:
+        case EVENT_THROTTLE_DECR_SMALL:
+        case EVENT_THROTTLE_INCR:
+        case EVENT_THROTTLE_INCR_SMALL:
+        case EVENT_THROTTLE_FULL:
+        case EVENT_INCREASE_THROTTLE:
+        case EVENT_DECREASE_THROTTLE:
+            fbw->DisableAutoThrottle();
+            return;
+        //default:
+        //    //SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, evt->uEventID, evt->dwData, SIMCONNECT_GROUP_PRIORITY_STANDARD, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
+        //    break;
         }
         break;
     }

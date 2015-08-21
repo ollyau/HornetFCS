@@ -341,6 +341,14 @@ void FBW::SetFlapSelection(int flapSelection)
     m_flapSelection = flapSelection;
 }
 
+void FBW::DisableAutoThrottle()
+{
+    if (m_atcMode != ATCMode::Disabled)
+    {
+        m_atcSwitch->Set(0.0);
+    }
+}
+
 void FBW::ToggleAutoThrottle()
 {
     m_atcSwitch->Toggle();

@@ -65,6 +65,8 @@ public:
     bool SetRudder(long stickZ);
     bool SetThrottle(long slider);
     void SetFlapSelection(int flapSelection);
+
+    void DisableAutoThrottle();
     void ToggleAutoThrottle();
 
     std::pair<State, State> SetState(FlightData* fd);
