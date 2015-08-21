@@ -102,6 +102,7 @@ private:
     int m_flapSelection;
 
     NamedVar::Ptr m_spinSwitch;
+    NamedVar::Ptr m_takeoffTrim;
 
     const double FLAP_PER_SEC = 0.2;
     const double MIN_TARGET_DELTA = 0.05;

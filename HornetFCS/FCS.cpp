@@ -193,6 +193,7 @@ m_stickX(0),
 m_stickY(0),
 m_stickZ(0),
 m_spinSwitch(std::make_shared<NamedVar>("switch_spin")),
+m_takeoffTrim(std::make_shared<NamedVar>("Take_Off_Trim")),
 m_cfgValid(false),
 frameRate(-1.0f),
 m_flapSelection(0)
@@ -311,6 +312,19 @@ void FBW::Update6Hz()
         m_levelFlight->ResetError();
         m_roll->ResetError();
         m_sideslip->ResetError();
+    }
+
+    auto trimResult = m_takeoffTrim->Update();
+    if (trimResult.first)
+    {
+        if (!!m_flightData->SimOnGround)
+        {
+            // do stuff
+        }
+        else
+        {
+            // do stuff
+        }
     }
 }
 
@@ -574,6 +588,7 @@ Stick Y %d
 Stick Z %d
 Flaps %d
 Spin Switch %f
+Takeoff Trim %f
 
 TAS (knots) %f
 AoA (degrees) %f
@@ -616,6 +631,7 @@ std::string FBW::ToString() const
         m_stickZ,
         m_flapSelection,
         m_spinSwitch->Get(),
+        m_takeoffTrim->Get(),
 
         m_flightData->AirspeedTrue,
         m_flightData->AngleOfAttack,
