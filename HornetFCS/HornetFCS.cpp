@@ -372,14 +372,13 @@ void Open()
     hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_AXIS_RUDDER_SET, "AXIS_RUDDER_SET");
     hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_AXIS_AILERONS_SET, "AXIS_AILERONS_SET");
     hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_AXIS_THROTTLE_SET, "AXIS_THROTTLE_SET");
+    hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_AUTO_THROTTLE_ARM, "AUTO_THROTTLE_ARM");
     hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_FLIGHT_CONTROLS, EVENT_AXIS_ELEVATOR_SET, true);
     hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_FLIGHT_CONTROLS, EVENT_AXIS_RUDDER_SET, true);
     hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_FLIGHT_CONTROLS, EVENT_AXIS_AILERONS_SET, true);
     hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_FLIGHT_CONTROLS, EVENT_AXIS_THROTTLE_SET, true);
+    hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_FLIGHT_CONTROLS, EVENT_AUTO_THROTTLE_ARM, true);
     hr = SimConnect_SetNotificationGroupPriority(hSimConnect, GROUP_FLIGHT_CONTROLS, SIMCONNECT_GROUP_PRIORITY_HIGHEST_MASKABLE);
-
-    hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_AUTO_THROTTLE, "AUTOPILOT THROTTLE ARM", "Bool", SIMCONNECT_DATATYPE_INT32);
-    hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_AUTO_THROTTLE_ARM, "AUTO_THROTTLE_ARM");
 
     hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_SIM_START, "SimStart");
 }
@@ -418,7 +417,6 @@ void AirFileRequest(SIMCONNECT_RECV_SYSTEM_STATE *evt)
             hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_FRAME, "Frame");
             hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FLIGHT_DATA, DEFINITION_FLIGHT_DATA, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_DATA_REQUEST_FLAG_DEFAULT);
             hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FLAP_HANDLE, DEFINITION_FLAP_HANDLE, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_DATA_REQUEST_FLAG_CHANGED);
-            hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_AUTO_THROTTLE, DEFINITION_AUTO_THROTTLE, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_DATA_REQUEST_FLAG_CHANGED);
         }
         else
         {
@@ -457,13 +455,9 @@ void RudderSet(SIMCONNECT_RECV_EVENT *evt)
 void ThrottleSet(SIMCONNECT_RECV_EVENT *evt)
 {
     auto result = fbw->SetThrottle(static_cast<long>(evt->dwData));
-    if (result.first)
+    if (result)
     {
         SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, evt->uEventID, evt->dwData, SIMCONNECT_GROUP_PRIORITY_STANDARD, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
-        if (result.second)
-        {
-            SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, EVENT_AUTO_THROTTLE_ARM, 0, SIMCONNECT_GROUP_PRIORITY_HIGHEST, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
-        }
     }
 }
 
@@ -502,10 +496,6 @@ void FlightDataRequest(SIMCONNECT_RECV_SIMOBJECT_DATA *pObjData)
         if (autoThrottle.first)
         {
             SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, EVENT_AXIS_THROTTLE_SET, static_cast<DWORD>(autoThrottle.second), SIMCONNECT_GROUP_PRIORITY_STANDARD, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
-        }
-        else if (autoThrottle.second == 1.0)
-        {
-            SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, EVENT_AUTO_THROTTLE_ARM, 0, SIMCONNECT_GROUP_PRIORITY_HIGHEST, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
         }
     }
 }
@@ -550,6 +540,9 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV* pData, DWORD cbData, void *pC
         case EVENT_AXIS_THROTTLE_SET:
             ThrottleSet(evt);
             return;
+        case EVENT_AUTO_THROTTLE_ARM:
+            fbw->ToggleAutoThrottle();
+            return;
             //default:
             //    //SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, evt->uEventID, evt->dwData, SIMCONNECT_GROUP_PRIORITY_STANDARD, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
             //    break;
@@ -588,9 +581,6 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV* pData, DWORD cbData, void *pC
             break;
         case REQUEST_FLIGHT_DATA:
             FlightDataRequest(pObjData);
-            break;
-        case REQUEST_AUTO_THROTTLE:
-            fbw->SetAutoThrottleArm(static_cast<int>(pObjData->dwData));
             break;
         }
         break;

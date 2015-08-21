@@ -63,9 +63,9 @@ public:
     bool SetElevator(long stickY);
     bool SetAileron(long stickX);
     bool SetRudder(long stickZ);
-    std::pair<bool, bool> SetThrottle(long slider);
+    bool SetThrottle(long slider);
     void SetFlapSelection(int flapSelection);
-    void SetAutoThrottleArm(int autoThrottleArmed);
+    void ToggleAutoThrottle();
 
     std::pair<State, State> SetState(FlightData* fd);
     std::pair<bool, double> SetMode();

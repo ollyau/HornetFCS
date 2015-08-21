@@ -321,20 +321,19 @@ bool FBW::SetRudder(long stickZ)
     }
 }
 
-std::pair<bool, bool> FBW::SetThrottle(long slider)
+bool FBW::SetThrottle(long slider)
 {
     m_slider = slider;
     if (m_atcMode == ATCMode::Disabled)
     {
-        return std::make_pair(true, false);
+        return true;
     }
     else if (abs(slider - m_atcSlider) > 3239L) // 3238.6 is 10% of -16193 +16193 range
     {
         m_atcSwitch->Set(0.0);
-        m_atcMode = ATCMode::Disabled;
-        return std::make_pair(true, true);
+        return true;
     }
-    return std::make_pair(false, false);
+    return false;
 }
 
 void FBW::SetFlapSelection(int flapSelection)
@@ -342,9 +341,9 @@ void FBW::SetFlapSelection(int flapSelection)
     m_flapSelection = flapSelection;
 }
 
-void FBW::SetAutoThrottleArm(int autoThrottleArmed)
+void FBW::ToggleAutoThrottle()
 {
-    m_atcSwitch->Set(autoThrottleArmed);
+    m_atcSwitch->Toggle();
 }
 
 void FBW::Update6Hz()
@@ -432,18 +431,22 @@ std::pair<bool, double> FBW::SetAutoThrottle()
     {
         // switch is on; check for conditions to turn on autothrottle
         auto flapDeg = m_flightData->TrailingFlapsLeft * 45.0;
-        if (m_flapSelection == 0)
+        if (m_flapSelection == 0 && !m_flightData->SimOnGround)
         {
             m_throttleCruise->ResetError();
             m_atcMode = ATCMode::Cruise;
             m_atcSlider = m_slider;
             m_atcSpeed = m_flightData->AirspeedTrue;
         }
-        else if (m_flapSelection > 0 && flapDeg >= 27.0)
+        else if (m_flapSelection > 0 && flapDeg >= 27.0 && !m_flightData->SimOnGround)
         {
             m_throttleApproach->ResetError();
             m_atcMode = ATCMode::Approach;
             m_atcSlider = m_slider;
+        }
+        else
+        {
+            m_atcSwitch->Set(0.0);
         }
         return std::make_pair(false, 0.0);
     }
@@ -452,8 +455,7 @@ std::pair<bool, double> FBW::SetAutoThrottle()
         if (m_flapSelection > 0 || m_mainState == State::PassThrough || !!m_flightData->SimOnGround)
         {
             m_atcSwitch->Set(0.0);
-            m_atcMode = ATCMode::Disabled;
-            return std::make_pair(false, 1.0);
+            return std::make_pair(false, 0.0);
         }
         else
         {
@@ -469,8 +471,7 @@ std::pair<bool, double> FBW::SetAutoThrottle()
         if (m_flapSelection == 0 || flapDeg < 27.0 || !!m_flightData->SimOnGround || abs(m_flightData->BankDegrees) > 70.0f || m_mainState == State::PassThrough) // gain ORIDE?
         {
             m_atcSwitch->Set(0.0);
-            m_atcMode = ATCMode::Disabled;
-            return std::make_pair(false, 1.0);
+            return std::make_pair(false, 0.0);
         }
         else
         {
