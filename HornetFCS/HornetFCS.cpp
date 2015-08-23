@@ -409,10 +409,6 @@ void AirFileRequest(SIMCONNECT_RECV_SYSTEM_STATE *evt)
         if (result)
         {
             hr = SimConnect_RequestSystemState(hSimConnect, REQUEST_FLIGHT_PLAN, "FlightPlan");
-#ifndef NDEBUG
-            hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_FLIGHT_PLAN_ACTIVATED, "FlightPlanActivated");
-            hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_FLIGHT_PLAN_DEACTIVATED, "FlightPlanDeactivated");
-#endif
             hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_6HZ, "6Hz");
             hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_FRAME, "Frame");
             hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FLIGHT_DATA, DEFINITION_FLIGHT_DATA, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_DATA_REQUEST_FLAG_DEFAULT);
@@ -496,17 +492,6 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV* pData, DWORD cbData, void *pC
         RecvReservedKey(rkey);
         break;
     }
-    case SIMCONNECT_RECV_ID_EVENT_FILENAME:
-    {
-        SIMCONNECT_RECV_EVENT_FILENAME *evt = (SIMCONNECT_RECV_EVENT_FILENAME*)pData;
-        switch (evt->uEventID)
-        {
-        case EVENT_FLIGHT_PLAN_ACTIVATED:
-            auto szFileName = evt->szFileName;
-            break;
-        }
-        break;
-    }
 #endif
     case SIMCONNECT_RECV_ID_EVENT:
     {
@@ -517,11 +502,6 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV* pData, DWORD cbData, void *pC
         case EVENT_RESERVED_KEY_REQUEST:
             SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, EVENT_RELOAD_USER_AIRCRAFT, 1, SIMCONNECT_GROUP_PRIORITY_HIGHEST, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
             break;
-        case EVENT_FLIGHT_PLAN_DEACTIVATED:
-        {
-            bool deactivated = true;
-            break;
-        }
 #endif
         case EVENT_SIM_START:
             SimStart();
@@ -556,10 +536,6 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV* pData, DWORD cbData, void *pC
             if (evt->szString[0] != '\0')
             {
                 hr = SimConnect_FlightPlanLoad(hSimConnect, evt->szString);
-            }
-            else
-            {
-                auto noPlan = true;
             }
             break;
         }
