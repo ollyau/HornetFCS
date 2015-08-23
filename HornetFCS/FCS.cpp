@@ -210,6 +210,8 @@ m_stickZ(0),
 m_slider(0),
 m_spinSwitch(std::make_shared<NamedVar>("switch_spin")),
 m_atcSwitch(std::make_shared<NamedVar>("ATC_INIT")),
+m_takeoffTrim(std::make_shared<NamedVar>("Take_Off_Trim")),
+m_takeoffTrimEnabled(false),
 m_cfgValid(false),
 frameRate(-1.0f),
 m_flapSelection(0),
@@ -237,10 +239,10 @@ bool FBW::InitializeData(std::string const& cfgPath)
 
     try
     {
-        auto cStarVec = Utils::SplitAndParse(szCStar, std::wstring(L","));
-        auto levelFlightVec = Utils::SplitAndParse(szLevelFlight, std::wstring(L","));
-        auto rollVec = Utils::SplitAndParse(szRoll, std::wstring(L","));
-        auto sideslipVec = Utils::SplitAndParse(szSideslip, std::wstring(L","));
+    auto cStarVec = Utils::SplitAndParse(szCStar, std::wstring(L","));
+    auto levelFlightVec = Utils::SplitAndParse(szLevelFlight, std::wstring(L","));
+    auto rollVec = Utils::SplitAndParse(szRoll, std::wstring(L","));
+    auto sideslipVec = Utils::SplitAndParse(szSideslip, std::wstring(L","));
         auto throttleApproachVec = Utils::SplitAndParse(szThrottleApproach, std::wstring(L","));
         auto throttleCruiseVec = Utils::SplitAndParse(szThrottleCruise, std::wstring(L","));
 
@@ -248,20 +250,20 @@ bool FBW::InitializeData(std::string const& cfgPath)
         auto throttlePidMax = (200.0 * throttleLimit) - 100.0;
 
         if (cStarVec.size() == 3 && levelFlightVec.size() == 3 && rollVec.size() == 3 && sideslipVec.size() == 3 && throttleApproachVec.size() == 3 && throttleCruiseVec.size() == 3)
-        {
-            m_cStar = std::make_shared<PIDController>(cStarVec[0], cStarVec[1], cStarVec[2], -100.0, 100.0);
-            m_levelFlight = std::make_shared<PIDController>(levelFlightVec[0], levelFlightVec[1], levelFlightVec[2], -100.0, 100.0);
-            m_roll = std::make_shared<PIDController>(rollVec[0], rollVec[1], rollVec[2], -100.0, 100.0);
-            m_sideslip = std::make_shared<PIDController>(sideslipVec[0], sideslipVec[1], sideslipVec[2], -100.0, 100.0);
+    {
+        m_cStar = std::make_shared<PIDController>(cStarVec[0], cStarVec[1], cStarVec[2], -100.0, 100.0);
+        m_levelFlight = std::make_shared<PIDController>(levelFlightVec[0], levelFlightVec[1], levelFlightVec[2], -100.0, 100.0);
+        m_roll = std::make_shared<PIDController>(rollVec[0], rollVec[1], rollVec[2], -100.0, 100.0);
+        m_sideslip = std::make_shared<PIDController>(sideslipVec[0], sideslipVec[1], sideslipVec[2], -100.0, 100.0);
             m_throttleApproach = std::make_shared<PIDController>(throttleApproachVec[0], throttleApproachVec[1], throttleApproachVec[2], -100.0, throttlePidMax);
             m_throttleCruise = std::make_shared<PIDController>(throttleCruiseVec[0], throttleCruiseVec[1], throttleCruiseVec[2], -100.0, throttlePidMax);
-            m_gScalar = std::stod(GForce);
-            m_pitchScalar = std::stod(pitchRate);
-            m_aoaScalar = std::stod(aoa);
-            m_highAoAScalar = std::stod(highAoA);
-            m_cfgValid = true;
-            return true;
-        }
+        m_gScalar = std::stod(GForce);
+        m_pitchScalar = std::stod(pitchRate);
+        m_aoaScalar = std::stod(aoa);
+        m_highAoAScalar = std::stod(highAoA);
+        m_cfgValid = true;
+        return true;
+    }
 
         return false;
     }
@@ -385,6 +387,19 @@ void FBW::Update6Hz()
     {
         m_atcMode = ATCMode::Disabled;
     }
+
+    auto trimResult = m_takeoffTrim->Update();
+    if (trimResult.first)
+    {
+        if (!!trimResult.second && !!m_flightData->SimOnGround)
+        {
+            m_takeoffTrimEnabled = true;
+        }
+        else
+        {
+            m_takeoffTrimEnabled = false;
+        }
+    }
 }
 
 std::pair<State, State> FBW::SetState(FlightData* fd)
@@ -396,7 +411,7 @@ std::pair<State, State> FBW::SetState(FlightData* fd)
         m_mainState = State::Disabled;
         m_yawState = State::Disabled;
     }
-    else if (!!fd->SimOnGround || fd->AirspeedTrue < 50.0 || !!fd->AutopilotMaster || !!m_spinSwitch->Get())
+    else if (!!fd->SimOnGround || fd->AirspeedTrue < 50.0 || !!fd->AutopilotMaster || !!m_spinSwitch->Get() || m_takeoffTrimEnabled)
     {
         m_mainState = State::PassThrough;
         m_yawState = State::PassThrough;
@@ -719,6 +734,7 @@ Slider %d
 Flaps %d
 Spin Switch %f
 ATC Switch %f
+Takeoff Trim Switch %f
 
 TAS (knots) %f
 AoA (degrees) %f
@@ -776,6 +792,7 @@ std::string FBW::ToString() const
         m_flapSelection,
         m_spinSwitch->Get(),
         m_atcSwitch->Get(),
+        m_takeoffTrim->Get(),
 
         !m_flightData ? 0.0 : m_flightData->AirspeedTrue,
         !m_flightData ? 0.0 : m_flightData->AngleOfAttack,
