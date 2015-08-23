@@ -431,10 +431,11 @@ void AirFileRequest(SIMCONNECT_RECV_SYSTEM_STATE *evt)
         auto result = fbw->InitializeData(path);
         if (result)
         {
+            hr = SimConnect_RequestSystemState(hSimConnect, REQUEST_FLIGHT_PLAN, "FlightPlan");
             hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_6HZ, "6Hz");
             hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_FRAME, "Frame");
             hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FLIGHT_DATA, DEFINITION_FLIGHT_DATA, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_DATA_REQUEST_FLAG_DEFAULT);
-            hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FLAP_HANDLE, DEFINITION_FLAP_HANDLE, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_DATA_REQUEST_FLAG_CHANGED);
+            hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FLAP_HANDLE, DEFINITION_FLAP_HANDLE, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_DATA_REQUEST_FLAG_CHANGED);            
         }
         else
         {
@@ -584,6 +585,12 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV* pData, DWORD cbData, void *pC
         {
         case REQUEST_AIR_FILE:
             AirFileRequest(evt);
+            break;
+        case REQUEST_FLIGHT_PLAN:
+            if (evt->szString[0] != '\0')
+            {
+                hr = SimConnect_FlightPlanLoad(hSimConnect, evt->szString);
+            }
             break;
         }
         break;
