@@ -63,7 +63,7 @@ public:
     bool SetElevator(long stickY);
     bool SetAileron(long stickX);
     bool SetRudder(long stickZ);
-    bool SetThrottle(long slider);
+    bool SetThrottle(long slider, uint8_t throttleIdx);
     void SetFlapSelection(int flapSelection);
 
     void DisableAutoThrottle();
@@ -107,7 +107,7 @@ private:
 
     ATCMode m_atcMode;
     double m_atcSpeed;
-    long m_atcSlider;
+    long m_atcSlider[3];
 
     bool m_cfgValid;
     bool m_takeoffTrimEnabled;
@@ -120,7 +120,7 @@ private:
     long m_stickX;
     long m_stickY;
     long m_stickZ;
-    long m_slider;
+    long m_slider[3];
     int m_flapSelection;
 
     NamedVar::Ptr m_spinSwitch;

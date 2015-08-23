@@ -373,11 +373,15 @@ void Open()
     hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_AXIS_AILERONS_SET, "AXIS_AILERONS_SET");
     hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_AXIS_THROTTLE_SET, "AXIS_THROTTLE_SET");
     hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_AUTO_THROTTLE_ARM, "AUTO_THROTTLE_ARM");
+    hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_AXIS_THROTTLE1_SET, "AXIS_THROTTLE1_SET");
+    hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_AXIS_THROTTLE2_SET, "AXIS_THROTTLE2_SET");
     hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_FLIGHT_CONTROLS, EVENT_AXIS_ELEVATOR_SET, true);
     hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_FLIGHT_CONTROLS, EVENT_AXIS_RUDDER_SET, true);
     hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_FLIGHT_CONTROLS, EVENT_AXIS_AILERONS_SET, true);
     hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_FLIGHT_CONTROLS, EVENT_AXIS_THROTTLE_SET, true);
     hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_FLIGHT_CONTROLS, EVENT_AUTO_THROTTLE_ARM, true);
+    hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_FLIGHT_CONTROLS, EVENT_AXIS_THROTTLE1_SET, true);
+    hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_FLIGHT_CONTROLS, EVENT_AXIS_THROTTLE2_SET, true);
     hr = SimConnect_SetNotificationGroupPriority(hSimConnect, GROUP_FLIGHT_CONTROLS, SIMCONNECT_GROUP_PRIORITY_HIGHEST_MASKABLE);
 
     hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_THROTTLE_CUT, "THROTTLE_CUT");
@@ -471,9 +475,9 @@ void RudderSet(SIMCONNECT_RECV_EVENT *evt)
     }
 }
 
-void ThrottleSet(SIMCONNECT_RECV_EVENT *evt)
+void ThrottleSet(SIMCONNECT_RECV_EVENT *evt, uint8_t throttleIdx = 0U)
 {
-    auto result = fbw->SetThrottle(static_cast<long>(evt->dwData));
+    auto result = fbw->SetThrottle(static_cast<long>(evt->dwData), throttleIdx);
     if (result)
     {
         SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, evt->uEventID, evt->dwData, SIMCONNECT_GROUP_PRIORITY_STANDARD, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
@@ -558,6 +562,12 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV* pData, DWORD cbData, void *pC
             return;
         case EVENT_AXIS_THROTTLE_SET:
             ThrottleSet(evt);
+            return;
+        case EVENT_AXIS_THROTTLE1_SET:
+            ThrottleSet(evt, 1U);
+            return;
+        case EVENT_AXIS_THROTTLE2_SET:
+            ThrottleSet(evt, 2U);
             return;
         case EVENT_AUTO_THROTTLE_ARM:
             fbw->ToggleAutoThrottle();
