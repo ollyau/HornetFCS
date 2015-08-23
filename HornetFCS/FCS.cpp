@@ -194,6 +194,7 @@ m_stickY(0),
 m_stickZ(0),
 m_spinSwitch(std::make_shared<NamedVar>("switch_spin")),
 m_takeoffTrim(std::make_shared<NamedVar>("Take_Off_Trim")),
+m_takeoffTrimEnabled(false),
 m_cfgValid(false),
 frameRate(-1.0f),
 m_flapSelection(0)
@@ -317,13 +318,13 @@ void FBW::Update6Hz()
     auto trimResult = m_takeoffTrim->Update();
     if (trimResult.first)
     {
-        if (!!m_flightData->SimOnGround)
+        if (!!trimResult.second && !!m_flightData->SimOnGround)
         {
-            // do stuff
+            m_takeoffTrimEnabled = true;
         }
         else
         {
-            // do stuff
+            m_takeoffTrimEnabled = false;
         }
     }
 }
@@ -337,7 +338,7 @@ std::pair<State, State> FBW::SetState(FlightData* fd)
         m_mainState = State::Disabled;
         m_yawState = State::Disabled;
     }
-    else if (!!fd->SimOnGround || fd->AirspeedTrue < 50.0 || !!fd->AutopilotMaster || !!m_spinSwitch->Get())
+    else if (!!fd->SimOnGround || fd->AirspeedTrue < 50.0 || !!fd->AutopilotMaster || !!m_spinSwitch->Get() || m_takeoffTrimEnabled)
     {
         m_mainState = State::PassThrough;
         m_yawState = State::PassThrough;

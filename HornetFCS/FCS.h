@@ -7,7 +7,7 @@
 #include <string>
 #include <utility>
 
-//#define DATA_GAUGE_ENABLED
+#define DATA_GAUGE_ENABLED
 
 namespace FCS
 {
@@ -90,6 +90,7 @@ private:
     Mode m_mode;
 
     bool m_cfgValid;
+    bool m_takeoffTrimEnabled;
 
     double m_gScalar;
     double m_pitchScalar;
@@ -104,8 +105,8 @@ private:
     NamedVar::Ptr m_spinSwitch;
     NamedVar::Ptr m_takeoffTrim;
 
-    const double FLAP_PER_SEC = 0.2;
-    const double MIN_TARGET_DELTA = 0.05;
+    const double FLAP_PER_SEC = 2.0 / 15.0;
+    const double MIN_TARGET_DELTA = 0.01;
     //const double MIN_FLAP_DELTA = .025;
 };
 
