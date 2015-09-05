@@ -188,7 +188,7 @@ unsigned int CALLBACK d2d_gauge_drawcb(void* args)
     IDWriteTextFormat* txtfmt_segoe = NULL;
 
     gau->ptarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &solidbrush_white);
-    rect_main = new D2D1_RECT_F(D2D1::RectF(10.0f, 60.0f, static_cast<float>(gau->sz_x) - 20.0f, static_cast<float>(gau->sz_y) - 70.0f));
+    rect_main = new D2D1_RECT_F(D2D1::RectF(10.0f, 10.0f, static_cast<float>(gau->sz_x) - 20.0f, static_cast<float>(gau->sz_y) - 20.0f));
     gau->pwfactory->CreateTextFormat(L"Segoe UI", NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 16.0f, L"en-US", &txtfmt_segoe);
     txtfmt_segoe->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
     txtfmt_segoe->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
