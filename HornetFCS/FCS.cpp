@@ -345,7 +345,7 @@ bool FBW::SetThrottle(long slider, uint8_t throttleIdx)
 	{
 		return true;
 	}
-	else if (abs(slider - m_atcSlider[throttleIdx]) > 3277L) // 3276.6 is 10% of -16383 +16383 range
+	else if (abs(slider - m_atcSlider[throttleIdx]) > 3277L || abs(m_slider[1] - m_slider[2]) > 3277L) // 3276.6 is 10% of -16383 +16383 range
 	{
 		m_atcSwitch->Set(0.0);
 		return true;
@@ -468,7 +468,6 @@ std::pair<bool, double> FBW::SetAutoThrottle()
 	case ATCMode::Disabled:
 	{
 		// switch is on; check for conditions to turn on autothrottle
-		auto flapDeg = m_flightData->TrailingFlapsLeft * 45.0;
 		if (m_flapSelection == 0 && !m_flightData->SimOnGround)
 		{
 			m_throttleCruise->ResetError();
@@ -479,7 +478,7 @@ std::pair<bool, double> FBW::SetAutoThrottle()
 			}
 			m_atcSpeed = m_flightData->AirspeedTrue;
 		}
-		else if (m_flapSelection > 0 && flapDeg >= 27.0 && !m_flightData->SimOnGround)
+		else if (m_flapSelection > 0 && m_flightData->TrailingFlapsLeft >= 0.6 && !m_flightData->SimOnGround)
 		{
 			m_throttleApproach->ResetError();
 			m_atcMode = ATCMode::Approach;
@@ -496,7 +495,7 @@ std::pair<bool, double> FBW::SetAutoThrottle()
 	}
 	case ATCMode::Cruise:
 	{
-		if (m_flapSelection > 0 || m_mainState == State::PassThrough || !!m_flightData->SimOnGround || abs(m_slider[1] - m_slider[2]) > 3277L)
+		if (m_flapSelection > 0 || m_mainState == State::PassThrough || !!m_flightData->SimOnGround)
 		{
 			m_atcSwitch->Set(0.0);
 			return std::make_pair(false, 0.0);
@@ -509,8 +508,7 @@ std::pair<bool, double> FBW::SetAutoThrottle()
 	}
 	case ATCMode::Approach:
 	{
-		auto flapDeg = m_flightData->TrailingFlapsLeft * 45.0;
-		if (m_flapSelection == 0 || flapDeg < 27.0 || !!m_flightData->SimOnGround || abs(m_flightData->BankDegrees) > 70.0f || m_mainState == State::PassThrough || abs(m_slider[1] - m_slider[2]) > 3277L)
+		if (m_flapSelection == 0 || m_flightData->TrailingFlapsLeft < 0.6 || !!m_flightData->SimOnGround || abs(m_flightData->BankDegrees) > 70.0f || m_mainState == State::PassThrough)
 		{
 			m_atcSwitch->Set(0.0);
 			return std::make_pair(false, 0.0);
