@@ -174,6 +174,7 @@ void FSAPI module_deinit(void)
 #ifdef DATA_GAUGE_ENABLED
     CoUninitialize();
 #endif
+    hr = SimConnect_MenuDeleteItem(hSimConnect, EVENT_MENU);
     hr = SimConnect_Close(hSimConnect);
 };
 
@@ -402,6 +403,11 @@ void Open()
     hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_THROTTLE, EVENT_DECREASE_THROTTLE);
     hr = SimConnect_SetNotificationGroupPriority(hSimConnect, GROUP_THROTTLE, SIMCONNECT_GROUP_PRIORITY_HIGHEST);
 
+    hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_MENU);
+    hr = SimConnect_MenuAddItem(hSimConnect, "HornetFCS", EVENT_MENU, 12345);
+    hr = SimConnect_AddClientEventToNotificationGroup(hSimConnect, GROUP_MENU, EVENT_MENU);
+    hr = SimConnect_SetNotificationGroupPriority(hSimConnect, GROUP_MENU, SIMCONNECT_GROUP_PRIORITY_HIGHEST);
+
     hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_SIM_START, "SimStart");
 }
 
@@ -418,6 +424,13 @@ void RecvReservedKey(SIMCONNECT_RECV_RESERVED_KEY *rkey)
     DisplayText(SIMCONNECT_TEXT_TYPE_PRINT_WHITE, 60.0f, buf);
 }
 #endif
+
+void RecvMenuEvent(SIMCONNECT_RECV_EVENT *evt)
+{
+    char buf[2048];
+    sprintf_s(buf, sizeof(buf), "Hornet FCS Build Timestamp: %s\r\nFCS Initialized: %s\r\n\r\n%s", Utils::compile_time_str().c_str(), fbw->GetCfgValid() ? "True" : "False", fbw->ToString().c_str());
+    DisplayText(SIMCONNECT_TEXT_TYPE_PRINT_WHITE, 15.0f, buf);
+}
 
 void RecvException(SIMCONNECT_RECV_EXCEPTION *ex)
 {
@@ -439,7 +452,7 @@ void AirFileRequest(SIMCONNECT_RECV_SYSTEM_STATE *evt)
             hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_6HZ, "6Hz");
             hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_FRAME, "Frame");
             hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FLIGHT_DATA, DEFINITION_FLIGHT_DATA, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_DATA_REQUEST_FLAG_DEFAULT);
-            hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FLAP_HANDLE, DEFINITION_FLAP_HANDLE, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_DATA_REQUEST_FLAG_CHANGED);            
+            hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FLAP_HANDLE, DEFINITION_FLAP_HANDLE, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_DATA_REQUEST_FLAG_CHANGED);
         }
         else
         {
@@ -582,9 +595,12 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV* pData, DWORD cbData, void *pC
         case EVENT_DECREASE_THROTTLE:
             fbw->DisableAutoThrottle();
             return;
-        //default:
-        //    //SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, evt->uEventID, evt->dwData, SIMCONNECT_GROUP_PRIORITY_STANDARD, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
-        //    break;
+        case EVENT_MENU:
+            RecvMenuEvent(evt);
+            return;
+            //default:
+            //    //SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, evt->uEventID, evt->dwData, SIMCONNECT_GROUP_PRIORITY_STANDARD, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
+            //    break;
         }
         break;
     }

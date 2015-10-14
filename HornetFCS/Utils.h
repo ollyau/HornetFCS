@@ -14,6 +14,8 @@ namespace Utils
 {
     const unsigned long MAX_INI_READ_SIZE = 255;
 
+    std::string compile_time_str();
+
     std::wstring ReadIni(std::string const& path, std::string const& section, std::string const& key);
 
     std::wstring s2ws(std::string const& str);
