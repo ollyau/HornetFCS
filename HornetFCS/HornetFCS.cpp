@@ -428,7 +428,7 @@ void RecvReservedKey(SIMCONNECT_RECV_RESERVED_KEY *rkey)
 void RecvMenuEvent(SIMCONNECT_RECV_EVENT *evt)
 {
     char buf[2048];
-    sprintf_s(buf, sizeof(buf), "Hornet FCS Build Timestamp: %s\r\nFCS Initialized: %s\r\n\r\n%s", Utils::compile_time_str().c_str(), fbw->GetCfgValid() ? "True" : "False", fbw->ToString().c_str());
+    sprintf_s(buf, sizeof(buf), "Hornet FCS Build Timestamp: %s\r\nFCS Initialized: %s", Utils::compile_time_str().c_str(), fbw->GetCfgValid() ? "True" : "False");
     DisplayText(SIMCONNECT_TEXT_TYPE_PRINT_WHITE, 15.0f, buf);
 }
 
