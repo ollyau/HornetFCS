@@ -84,8 +84,7 @@ copy "$(OutDir)$(TargetName).pdb" "D:\Program Files (x86)\Microsoft Games\Micros
       <AdditionalDependencies>D:\Program Files (x86)\Microsoft Games\Microsoft Flight Simulator X SDK\SDK\Core Utilities Kit\SimConnect SDK\lib\SimConnect.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>"C:\Users\Orion\Documents\Visual Studio 2015\Projects\BuildPublisher\BuildPublisher\bin\Debug\BuildPublisher.exe" -path="$(TargetPath)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
