@@ -510,12 +510,12 @@ void FlightDataRequest(SIMCONNECT_RECV_SIMOBJECT_DATA *pObjData)
             SimConnect_SetDataOnSimObject(hSimConnect, DEFINITION_ELEVATOR_TRIM, SIMCONNECT_OBJECT_ID_USER, 0, 0, sizeof(double), &fbwTrim.second);
         }
 
-        if (fbwState.first == FCS::State::Enabled && fbw->GetCfgValid())
+        if (fbwState.first && fbw->GetCfgValid())
         {
             auto elevatorVal = fbw->GetCurrentElevator();
             SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, EVENT_AXIS_ELEVATOR_SET, static_cast<DWORD>(elevatorVal), SIMCONNECT_GROUP_PRIORITY_STANDARD, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
 
-            if (fbwState.second == FCS::State::Enabled)
+            if (fbwState.second)
             {
                 auto rudderVal = fbw->GetCurrentRudder();
                 SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, EVENT_AXIS_RUDDER_SET, static_cast<DWORD>(rudderVal), SIMCONNECT_GROUP_PRIORITY_STANDARD, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);

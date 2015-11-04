@@ -406,7 +406,7 @@ void FBW::Update6Hz()
     }
 }
 
-std::pair<State, State> FBW::SetState(FlightData* fd)
+std::pair<bool, bool> FBW::SetState(FlightData* fd)
 {
     m_flightData = fd;
 
@@ -426,7 +426,7 @@ std::pair<State, State> FBW::SetState(FlightData* fd)
         m_yawState = m_stickZ == 0 ? State::Enabled : State::PassThrough;
     }
 
-    return std::make_pair(m_mainState, m_yawState);
+    return std::make_pair(m_mainState == State::Enabled, m_yawState == State::Enabled);
 }
 
 std::pair<bool, double> FBW::SetMode()

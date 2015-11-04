@@ -41,15 +41,6 @@ enum class ATCMode
 
 //-----------------------------------------------------------------------------
 
-#ifdef DATA_GAUGE_ENABLED
-
-char* StateLookup(State state);
-char* ModeLookup(Mode mode);
-
-#endif
-
-//-----------------------------------------------------------------------------
-
 class FBW
 {
 public:
@@ -69,7 +60,7 @@ public:
     void DisableAutoThrottle();
     void ToggleAutoThrottle();
 
-    std::pair<State, State> SetState(FlightData* fd);
+    std::pair<bool, bool> SetState(FlightData* fd);
     std::pair<bool, double> SetMode();
     std::pair<bool, double> SetAutoThrottle();
     void Update6Hz();
