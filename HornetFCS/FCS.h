@@ -7,7 +7,7 @@
 #include <string>
 #include <utility>
 
-//#define DATA_GAUGE_ENABLED
+#define DATA_GAUGE_ENABLED
 
 namespace FCS
 {

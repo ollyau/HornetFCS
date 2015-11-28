@@ -125,10 +125,11 @@ double ElevatorPitchRate(long elevatorPos, double offset = 0.0)
 
 double ElevatorGForce(long elevatorPos, bool limitG, double offset)
 {
-    // quintic fit {{-100,10},{0,1},{100,-3}}
-    // 1 - 0.065 x + 0.00025 x^2
+    // quintic fit {{-100,7.5},{0,1},{100,-3}}
+    // 1 - 0.0525 x + 0.000125 x^2
+    // quintic fit {{-100,10},{0,1},{100,-5}} => 1 - 0.075 x + 0.00015 x^2
     auto val = static_cast<double>(elevatorPos) / 163.83;
-    auto result = 1.0 + offset - (0.065 * val) + (0.00025 * val * val);
+    auto result = 1.0 + offset - (0.075 * val) + (0.00015 * val * val);
     return (limitG && result > 5.5) ? 5.5 : result;
 }
 
