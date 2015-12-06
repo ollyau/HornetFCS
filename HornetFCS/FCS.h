@@ -17,6 +17,7 @@ namespace FCS
 enum class State
 {
     Disabled,
+    Autopilot,
     PassThrough,
     Enabled
 };

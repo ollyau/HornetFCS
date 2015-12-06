@@ -15,6 +15,7 @@ char* StateLookup(State state)
     switch (state)
     {
     case State::Disabled: return "Disabled";
+    case State::Autopilot: return "PassThrough - Autopilot";
     case State::PassThrough: return "PassThrough";
     case State::Enabled: return "Enabled";
     default: return "Unknown FCS::State value";
@@ -287,6 +288,7 @@ bool FBW::SetElevator(long stickY)
     {
     case State::Disabled:
         return false;
+    case State::Autopilot:
     case State::PassThrough:
         return true;
     case State::Enabled:
@@ -311,6 +313,7 @@ bool FBW::SetAileron(long stickX)
     {
     case State::Disabled:
         return false;
+    case State::Autopilot:
     case State::PassThrough:
         return true;
     case State::Enabled:
@@ -331,6 +334,7 @@ bool FBW::SetRudder(long stickZ)
     {
     case State::Disabled:
         return false;
+    case State::Autopilot:
     case State::PassThrough:
         m_sideslip->ResetError();
         return true;
@@ -416,10 +420,15 @@ std::pair<bool, bool> FBW::SetState(FlightData* fd)
         m_mainState = State::Disabled;
         m_yawState = State::Disabled;
     }
-    else if (!!fd->SimOnGround || fd->AirspeedTrue < 50.0 || !!fd->AutopilotMaster || !!m_spinSwitch->Get() || m_takeoffTrimEnabled)
+    else if (!!fd->SimOnGround || fd->AirspeedTrue < 50.0 || !!m_spinSwitch->Get() || m_takeoffTrimEnabled)
     {
         m_mainState = State::PassThrough;
         m_yawState = State::PassThrough;
+    }
+    else if (!!fd->AutopilotMaster)
+    {
+        m_mainState = State::Autopilot;
+        m_yawState = State::Autopilot;
     }
     else
     {
