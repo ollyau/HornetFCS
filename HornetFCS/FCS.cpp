@@ -423,7 +423,7 @@ void FBW::Update6Hz()
             {
                 if (!!m_fuelValve->Get(1))
                 {
-                    trigger_key_event(KEY_TOGGLE_FUEL_VALVE_ENG1, UINT32(0));
+                    send_key_event(KEY_TOGGLE_FUEL_VALVE_ENG1, UINT32(0));
                 }
             }
             else
@@ -435,7 +435,7 @@ void FBW::Update6Hz()
         {
             if (!m_fuelValve->Get(1))
             {
-                trigger_key_event(KEY_TOGGLE_FUEL_VALVE_ENG1, UINT32(0));
+                send_key_event(KEY_TOGGLE_FUEL_VALVE_ENG1, UINT32(0));
             }
         }
     }
@@ -449,7 +449,7 @@ void FBW::Update6Hz()
             {
                 if (!!m_fuelValve->Get(2))
                 {
-                    trigger_key_event(KEY_TOGGLE_FUEL_VALVE_ENG2, UINT32(0));
+                    send_key_event(KEY_TOGGLE_FUEL_VALVE_ENG2, UINT32(0));
                 }
             }
             else
@@ -461,7 +461,7 @@ void FBW::Update6Hz()
         {
             if (!m_fuelValve->Get(2))
             {
-                trigger_key_event(KEY_TOGGLE_FUEL_VALVE_ENG2, UINT32(0));
+                send_key_event(KEY_TOGGLE_FUEL_VALVE_ENG2, UINT32(0));
             }
         }
     }
