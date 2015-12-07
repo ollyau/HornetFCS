@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AircraftVar.h"
 #include "NamedVar.h"
 #include "SimConnectData.h"
 #include "PIDController.h"
@@ -119,6 +120,11 @@ private:
     NamedVar::Ptr m_atcSwitch;
     NamedVar::Ptr m_takeoffTrim;
 	NamedVar::Ptr m_fcsInitialized;
+    NamedVar::Ptr m_throttleCutoffLeft;
+    NamedVar::Ptr m_throttleCutoffRight;
+
+    AircraftVar::Ptr m_throttlePosition;
+    AircraftVar::Ptr m_fuelValve;
 
     const double FLAP_PER_SEC = 0.2;
     const double MIN_TARGET_DELTA = 0.05;

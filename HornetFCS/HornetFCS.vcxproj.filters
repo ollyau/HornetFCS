@@ -48,6 +48,9 @@
     <ClInclude Include="NamedVar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AircraftVar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

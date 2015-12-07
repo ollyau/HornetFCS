@@ -216,6 +216,10 @@ FBW::FBW()
     m_atcSwitch(std::make_shared<NamedVar>("ATC_INIT")),
     m_takeoffTrim(std::make_shared<NamedVar>("Take_Off_Trim")),
     m_fcsInitialized(std::make_shared<NamedVar>("fcs_initialized")),
+    m_throttleCutoffLeft(std::make_shared<NamedVar>("Throttle_cutoff0")),
+    m_throttleCutoffRight(std::make_shared<NamedVar>("Throttle_cutoff1")),
+    m_throttlePosition(std::make_shared<AircraftVar>("GENERAL ENG THROTTLE LEVER POSITION", "percent")),
+    m_fuelValve(std::make_shared<AircraftVar>("GENERAL ENG FUEL VALVE", "Bool")),
     m_takeoffTrimEnabled(false),
     m_cfgValid(false),
     frameRate(-1.0f),
@@ -407,6 +411,58 @@ void FBW::Update6Hz()
         else
         {
             m_takeoffTrimEnabled = false;
+        }
+    }
+
+    auto throttleCutoffLeft = m_throttleCutoffLeft->Update();
+    if (throttleCutoffLeft.first)
+    {
+        if (!!throttleCutoffLeft.second)
+        {
+            if (m_throttlePosition->Get(1) < 3.0)
+            {
+                if (!!m_fuelValve->Get(1))
+                {
+                    trigger_key_event(KEY_TOGGLE_FUEL_VALVE_ENG1, UINT32(0));
+                }
+            }
+            else
+            {
+                m_throttleCutoffLeft->Set(0.0);
+            }
+        }
+        else
+        {
+            if (!m_fuelValve->Get(1))
+            {
+                trigger_key_event(KEY_TOGGLE_FUEL_VALVE_ENG1, UINT32(0));
+            }
+        }
+    }
+
+    auto throttleCutoffRight = m_throttleCutoffRight->Update();
+    if (throttleCutoffRight.first)
+    {
+        if (!!throttleCutoffRight.second)
+        {
+            if (m_throttlePosition->Get(2) < 3.0)
+            {
+                if (!!m_fuelValve->Get(2))
+                {
+                    trigger_key_event(KEY_TOGGLE_FUEL_VALVE_ENG2, UINT32(0));
+                }
+            }
+            else
+            {
+                m_throttleCutoffRight->Set(0.0);
+            }
+        }
+        else
+        {
+            if (!m_fuelValve->Get(2))
+            {
+                trigger_key_event(KEY_TOGGLE_FUEL_VALVE_ENG2, UINT32(0));
+            }
         }
     }
 }

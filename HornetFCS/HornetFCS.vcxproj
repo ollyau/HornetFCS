@@ -91,6 +91,7 @@ copy "$(OutDir)$(TargetName).pdb" "D:\Program Files (x86)\Microsoft Games\Micros
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AircraftVar.h" />
     <ClInclude Include="D2D_Classes.h" />
     <ClInclude Include="FCS.h" />
     <ClInclude Include="GaugeRes.h" />
