@@ -33,7 +33,13 @@ public:
         return m_value;
     }
 
-    double Get(const char* unitName, int index = 0)
+    double GetUnits(ENUM unitEnum, int index = 0)
+    {
+        m_value = aircraft_varget(m_varEnum, unitEnum, index);
+        return m_value;
+    }
+
+    double GetUnits(const char* unitName, int index = 0)
     {
         auto unit = get_units_enum(unitName);
         assert(unit >= 0);
