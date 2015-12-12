@@ -222,7 +222,7 @@ FBW::FBW()
     m_fuelValve(std::make_shared<AircraftVar>("GENERAL ENG FUEL VALVE", "Bool")),
     m_takeoffTrimEnabled(false),
     m_cfgValid(false),
-    frameRate(-1.0f),
+    deltaTime(-1.0),
     m_flapSelection(0),
     m_atcSpeed(0.0),
     m_atcSlider{ 0L, 0L, 0L }
@@ -570,7 +570,7 @@ std::pair<bool, double> FBW::SetAutoThrottle()
         }
         else
         {
-            auto result = m_throttleCruise->Calculate(m_flightData->AirspeedTrue, m_atcSpeed, 1.0 / frameRate) * 163.83;
+            auto result = m_throttleCruise->Calculate(m_flightData->AirspeedTrue, m_atcSpeed, deltaTime) * 163.83;
             return std::make_pair(true, result);
         }
     }
@@ -583,7 +583,7 @@ std::pair<bool, double> FBW::SetAutoThrottle()
         }
         else
         {
-            auto result = m_throttleApproach->Calculate(8.1, m_flightData->AngleOfAttack, 1.0 / frameRate) * 163.83;
+            auto result = m_throttleApproach->Calculate(8.1, m_flightData->AngleOfAttack, deltaTime) * 163.83;
             return std::make_pair(true, result);
         }
     }
@@ -613,11 +613,11 @@ double FBW::GetCurrentElevator()
             m_aoaScalar
             );
 
-        return m_cStar->Calculate(currentValue, desiredValue, 1.0 / frameRate) * 163.83;
+        return m_cStar->Calculate(currentValue, desiredValue, deltaTime) * 163.83;
     }
     case Mode::UpAndAway:
     {
-        auto offsetVal = m_stickY == 0 ? m_levelFlight->Calculate(m_flightData->GForce, 1.0 + (m_flightData->ElevatorTrimPosition / 2.0), 1.0 / frameRate) : (m_flightData->ElevatorTrimPosition / 2.0);
+        auto offsetVal = m_stickY == 0 ? m_levelFlight->Calculate(m_flightData->GForce, 1.0 + (m_flightData->ElevatorTrimPosition / 2.0), deltaTime) : (m_flightData->ElevatorTrimPosition / 2.0);
 
         auto desiredValue = UpAndAway(
             m_flightData->PitchRate,
@@ -641,7 +641,7 @@ double FBW::GetCurrentElevator()
             m_highAoAScalar
             );
 
-        return m_cStar->Calculate(currentValue, desiredValue, 1.0 / frameRate) * 163.83;
+        return m_cStar->Calculate(currentValue, desiredValue, deltaTime) * 163.83;
     }
     default:
     {
@@ -661,12 +661,12 @@ double FBW::GetCurrentAileron()
         else if (rollRate < -180.0) { rollRate = -180.0; }
     }
 
-    return m_roll->Calculate(m_flightData->RollRate, rollRate, 1.0 / frameRate) * 163.83;
+    return m_roll->Calculate(m_flightData->RollRate, rollRate, deltaTime) * 163.83;
 }
 
 double FBW::GetCurrentRudder()
 {
-    return m_sideslip->Calculate(m_flightData->SideslipAngle, 0.0, 1.0 / frameRate) * 163.83;
+    return m_sideslip->Calculate(m_flightData->SideslipAngle, 0.0, deltaTime) * 163.83;
 }
 
 std::shared_ptr<Flaps> FBW::GetCurrentFlaps()
@@ -724,7 +724,7 @@ std::shared_ptr<Flaps> FBW::GetCurrentFlaps()
     m_desiredFlaps->TrailingLeft = tef / 45.0;
     m_desiredFlaps->TrailingRight = tef / 45.0;
 
-    auto dFlap = FLAP_PER_SEC / static_cast<double>(frameRate);
+    auto dFlap = FLAP_PER_SEC * deltaTime;
     //if (dFlap < MIN_FLAP_DELTA) { dFlap = MIN_FLAP_DELTA; }
 
     auto dLeadingLeft = m_desiredFlaps->LeadingLeft - m_flightData->LeadingFlapsLeft;

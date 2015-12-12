@@ -77,7 +77,7 @@ public:
     double GetCurrentRudder();
     std::shared_ptr<Flaps> GetCurrentFlaps();
 
-    float frameRate;
+    double deltaTime;
 #ifdef DATA_GAUGE_ENABLED
     std::string ToString() const;
 #endif

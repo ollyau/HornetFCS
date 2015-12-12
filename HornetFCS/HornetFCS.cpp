@@ -500,7 +500,7 @@ void ThrottleSet(SIMCONNECT_RECV_EVENT *evt, uint8_t throttleIdx = 0U)
 void FlightDataRequest(SIMCONNECT_RECV_SIMOBJECT_DATA *pObjData)
 {
     auto flightData = (FlightData*)&pObjData->dwData;
-    if (fbw->frameRate > 0.0f)
+    if (fbw->deltaTime > 0.0f)
     {
         auto fbwState = fbw->SetState(flightData);
         auto fbwTrim = fbw->SetMode();
@@ -627,7 +627,10 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV* pData, DWORD cbData, void *pC
         switch (evt->uEventID)
         {
         case EVENT_FRAME:
-            fbw->frameRate = evt->fFrameRate;
+            if (evt->fFrameRate > 0.0f)
+            {
+                fbw->deltaTime = 1.0 / static_cast<double>(evt->fFrameRate);
+            }
             break;
         }
         break;
