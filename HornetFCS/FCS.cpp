@@ -510,7 +510,7 @@ std::pair<bool, double> FBW::SetMode()
         if (m_mode != Mode::PoweredApproach)
         {
             m_mode = Mode::PoweredApproach;
-            return std::make_pair(true, m_flightData->AngleOfAttack - 5.8);
+            return std::make_pair(true, -5.8);
         }
     }
     else
