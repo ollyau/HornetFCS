@@ -617,7 +617,7 @@ double FBW::GetCurrentElevator()
     }
     case Mode::UpAndAway:
     {
-        auto offsetVal = m_stickY == 0 ? m_levelFlight->Calculate(m_flightData->GForce, 1.0 + (m_flightData->ElevatorTrimPosition / 2.0), deltaTime) : (m_flightData->ElevatorTrimPosition / 2.0);
+        auto offsetVal = (m_stickY == 0 && abs(m_flightData->PitchRate) < 1.0) ? m_levelFlight->Calculate(m_flightData->GForce, 1.0 + (m_flightData->ElevatorTrimPosition / 2.0), deltaTime) : (m_flightData->ElevatorTrimPosition / 2.0);
 
         auto desiredValue = UpAndAway(
             m_flightData->PitchRate,
