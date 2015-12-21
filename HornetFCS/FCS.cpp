@@ -158,19 +158,15 @@ double PoweredApproach(double pitchRate, double aoa, double flapPosition, double
 double UpAndAway(double pitchRate, double GForce, double aoa, double currentAoA, double airspeed, double GScalar, double pitchScalar, double aoaScalar)
 {
     auto aoaBias = (currentAoA - 22.0) / (35.0 - 22.0);
-    auto airspeedBias = (airspeed - 230.0) / (390.0 - 230.0);
+    auto airspeedBias = airspeed / 310.0;
     double value = 0.0;
     if (airspeedBias >= 1.0)
     {
         value = GForce * GScalar;
     }
-    else if (airspeedBias <= 0.0)
-    {
-        value = pitchRate * pitchScalar;
-    }
     else
     {
-        value = (pitchRate * pitchScalar * (1.0 - airspeedBias)) + (GForce * GScalar * airspeedBias);
+        value = (pitchRate * pitchScalar * (1.0 - airspeedBias)) + (GForce * GScalar);
     }
 
     if (aoaBias <= 0.0)
@@ -617,7 +613,7 @@ double FBW::GetCurrentElevator()
     }
     case Mode::UpAndAway:
     {
-        auto offsetVal = (m_stickY == 0 && abs(m_flightData->PitchRate) < 1.0) ? m_levelFlight->Calculate(m_flightData->GForce, 1.0 + (m_flightData->ElevatorTrimPosition / 2.0), deltaTime) : (m_flightData->ElevatorTrimPosition / 2.0);
+        auto offsetVal = (m_stickY == 0 && abs(m_flightData->PitchRate) < 1.0) ? m_levelFlight->Calculate(m_flightData->GForce - m_flightData->PitchRate, 1.0 + (m_flightData->ElevatorTrimPosition / 2.0), deltaTime) : (m_flightData->ElevatorTrimPosition / 2.0);
 
         auto desiredValue = UpAndAway(
             m_flightData->PitchRate,
