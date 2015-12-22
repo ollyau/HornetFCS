@@ -22,6 +22,19 @@ char* StateLookup(State state)
     }
 }
 
+char* RudderStateLookup(RudderState state)
+{
+    switch (state)
+    {
+    case RudderState::Disabled: return "Disabled";
+    case RudderState::Autopilot: return "PassThrough - Autopilot";
+    case RudderState::PassThrough: return "PassThrough";
+    case RudderState::OnGround: return "OnGround";
+    case RudderState::Enabled: return "Enabled";
+    default: return "Unknown FCS::RudderState value";
+    }
+}
+
 char* ModeLookup(Mode mode)
 {
     switch (mode)
@@ -201,7 +214,7 @@ FBW::FBW()
     m_aoaScalar(0.0),
     m_highAoAScalar(0.0),
     m_mainState(State::PassThrough),
-    m_yawState(State::PassThrough),
+    m_yawState(RudderState::PassThrough),
     m_mode(Mode::OnGround),
     m_atcMode(ATCMode::Disabled),
     m_stickX(0),
@@ -216,6 +229,7 @@ FBW::FBW()
     m_throttleCutoffRight(std::make_shared<NamedVar>("Throttle_cutoff1")),
     m_throttlePosition(std::make_shared<AircraftVar>("GENERAL ENG THROTTLE LEVER POSITION", "percent")),
     m_fuelValve(std::make_shared<AircraftVar>("GENERAL ENG FUEL VALVE", "Bool")),
+    m_surfaceRelativeGroundSpeed(std::make_shared<AircraftVar>("SURFACE RELATIVE GROUND SPEED", "knots")),
     m_takeoffTrimEnabled(false),
     m_cfgValid(false),
     deltaTime(-1.0),
@@ -327,21 +341,30 @@ bool FBW::SetAileron(long stickX)
     }
 }
 
-bool FBW::SetRudder(long stickZ)
+std::pair<bool, long> FBW::SetRudder(long stickZ)
 {
     m_stickZ = stickZ;
     switch (m_yawState)
     {
-    case State::Disabled:
-        return false;
-    case State::Autopilot:
-    case State::PassThrough:
+    case RudderState::Disabled:
+        return std::make_pair(false, 0L);
+    case RudderState::Autopilot:
+    case RudderState::PassThrough:
         m_sideslip->ResetError();
-        return true;
-    case State::Enabled:
-        return false;
+        return std::make_pair(true, stickZ);
+    case RudderState::OnGround:
+    {
+        auto rudderVal = stickZ;
+        if (m_surfaceRelativeGroundSpeed->Get() > 5.0 && abs(rudderVal) > 3495L)
+        {
+            rudderVal = rudderVal > 0 ? 3495L : -3495L;
+        }
+        return std::make_pair(true, rudderVal);
+    }
+    case RudderState::Enabled:
+        return std::make_pair(false, 0L);
     default:
-        return false;
+        return std::make_pair(false, 0L);
     }
 }
 
@@ -470,25 +493,25 @@ std::pair<bool, bool> FBW::SetState(FlightData* fd)
     if (fd->HydraulicPressure1 < 1500.0f && fd->HydraulicPressure2 < 1500.0f && fd->ApuPercent < 0.7f)
     {
         m_mainState = State::Disabled;
-        m_yawState = State::Disabled;
+        m_yawState = RudderState::Disabled;
     }
     else if (!!fd->SimOnGround || fd->AirspeedTrue < 50.0 || !!m_spinSwitch->Get() || m_takeoffTrimEnabled)
     {
         m_mainState = State::PassThrough;
-        m_yawState = State::PassThrough;
+        m_yawState = !!fd->SimOnGround ? RudderState::OnGround : RudderState::PassThrough;
     }
     else if (!!fd->AutopilotMaster)
     {
         m_mainState = State::Autopilot;
-        m_yawState = State::Autopilot;
+        m_yawState = RudderState::Autopilot;
     }
     else
     {
         m_mainState = State::Enabled;
-        m_yawState = m_stickZ == 0 ? State::Enabled : State::PassThrough;
+        m_yawState = m_stickZ == 0 ? RudderState::Enabled : RudderState::PassThrough;
     }
 
-    return std::make_pair(m_mainState == State::Enabled, m_yawState == State::Enabled);
+    return std::make_pair(m_mainState == State::Enabled, m_yawState == RudderState::Enabled);
 }
 
 std::pair<bool, double> FBW::SetMode()
@@ -497,31 +520,16 @@ std::pair<bool, double> FBW::SetMode()
     {
         if (m_mode != Mode::OnGround)
         {
-            auto trimVal = 0.0;
-            if (m_mode == Mode::PoweredApproach)
-            {
-                trimVal = 2.3;
-            }
             m_mode = Mode::OnGround;
-            return std::make_pair(true, trimVal);
+            return std::make_pair(true, 0.0);
         }
     }
     else if (m_flapSelection > 0 && m_flightData->AirspeedTrue < 240.0)
     {
         if (m_mode != Mode::PoweredApproach)
         {
-            auto setTrim = true;
-            auto trimVal = 0.0;
-            if (m_mode == Mode::UpAndAway)
-            {
-                trimVal = -5.8;
-            }
-            else if (m_mode == Mode::OnGround)
-            {
-                setTrim = false;
-            }
             m_mode = Mode::PoweredApproach;
-            return std::make_pair(setTrim, trimVal);
+            return std::make_pair(true, -5.8);
         }
     }
     else
@@ -868,7 +876,7 @@ std::string FBW::ToString() const
         m_throttleCruise->GetTotalError(),
 
         StateLookup(m_mainState),
-        StateLookup(m_yawState),
+        RudderStateLookup(m_yawState),
         ModeLookup(m_mode),
         ATCModeLookup(m_atcMode),
 

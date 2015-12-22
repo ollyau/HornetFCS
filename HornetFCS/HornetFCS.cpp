@@ -482,9 +482,9 @@ void AileronSet(SIMCONNECT_RECV_EVENT *evt)
 void RudderSet(SIMCONNECT_RECV_EVENT *evt)
 {
     auto result = fbw->SetRudder(static_cast<long>(evt->dwData));
-    if (result)
+    if (result.first)
     {
-        SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, evt->uEventID, evt->dwData, SIMCONNECT_GROUP_PRIORITY_STANDARD, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
+        SimConnect_TransmitClientEvent(hSimConnect, SIMCONNECT_OBJECT_ID_USER, evt->uEventID, static_cast<unsigned long>(result.second), SIMCONNECT_GROUP_PRIORITY_STANDARD, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
     }
 }
 

@@ -25,6 +25,17 @@ enum class State
 
 //-----------------------------------------------------------------------------
 
+enum class RudderState
+{
+    Disabled,
+    Autopilot,
+    PassThrough,
+    OnGround,
+    Enabled
+};
+
+//-----------------------------------------------------------------------------
+
 enum class Mode
 {
     OnGround,
@@ -55,7 +66,7 @@ public:
 
     bool SetElevator(long stickY);
     bool SetAileron(long stickX);
-    bool SetRudder(long stickZ);
+    std::pair<bool, long> SetRudder(long stickZ);
     bool SetThrottle(long slider, uint8_t throttleIdx);
     void SetFlapSelection(int flapSelection);
 
@@ -95,7 +106,7 @@ private:
     PIDController::Ptr m_throttleCruise;
 
     State m_mainState;
-    State m_yawState;
+    RudderState m_yawState;
     Mode m_mode;
 
     ATCMode m_atcMode;
@@ -123,6 +134,7 @@ private:
     NamedVar::Ptr m_throttleCutoffLeft;
     NamedVar::Ptr m_throttleCutoffRight;
 
+    AircraftVar::Ptr m_surfaceRelativeGroundSpeed;
     AircraftVar::Ptr m_throttlePosition;
     AircraftVar::Ptr m_fuelValve;
 
