@@ -520,16 +520,26 @@ std::pair<bool, double> FBW::SetMode()
     {
         if (m_mode != Mode::OnGround)
         {
+            auto setTrim = true;
+            if (m_mode == Mode::PoweredApproach)
+            {
+                setTrim = false;
+            }
             m_mode = Mode::OnGround;
-            return std::make_pair(true, 0.0);
+            return std::make_pair(setTrim, 0.0);
         }
     }
     else if (m_flapSelection > 0 && m_flightData->AirspeedTrue < 240.0)
     {
         if (m_mode != Mode::PoweredApproach)
         {
+            auto setTrim = true;
+            if (m_mode == Mode::OnGround)
+            {
+                setTrim = false;
+            }
             m_mode = Mode::PoweredApproach;
-            return std::make_pair(true, -5.8);
+            return std::make_pair(setTrim, -5.8);
         }
     }
     else
