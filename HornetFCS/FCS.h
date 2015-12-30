@@ -82,6 +82,7 @@ public:
     //State GetYawState() const { return m_yawState; }
     //Mode GetMode() const { return m_mode; }
     bool GetCfgValid() const { return m_cfgValid; }
+    std::string GetCfgPath() const { return m_cfgPath; }
 
     double GetCurrentElevator();
     double GetCurrentAileron();
@@ -113,6 +114,7 @@ private:
     double m_atcSpeed;
     long m_atcSlider[3];
 
+    std::string m_cfgPath;
     bool m_cfgValid;
     bool m_takeoffTrimEnabled;
 

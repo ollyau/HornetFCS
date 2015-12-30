@@ -428,7 +428,7 @@ void RecvReservedKey(SIMCONNECT_RECV_RESERVED_KEY *rkey)
 void RecvMenuEvent(SIMCONNECT_RECV_EVENT *evt)
 {
     char buf[2048];
-    sprintf_s(buf, sizeof(buf), "Hornet FCS Build Timestamp: %s\r\nFCS Initialized: %s", Utils::compile_time_str().c_str(), fbw->GetCfgValid() ? "True" : "False");
+    sprintf_s(buf, sizeof(buf), "Hornet FCS Build Timestamp: %s\r\nFCS Initialized: %s\r\nCFG Path: %s", Utils::compile_time_str().c_str(), fbw->GetCfgValid() ? "True" : "False", fbw->GetCfgPath());
     DisplayText(SIMCONNECT_TEXT_TYPE_PRINT_WHITE, 15.0f, buf);
 }
 
@@ -543,8 +543,7 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV* pData, DWORD cbData, void *pC
 #ifndef NDEBUG
     case SIMCONNECT_RECV_ID_RESERVED_KEY:
     {
-        SIMCONNECT_RECV_RESERVED_KEY *rkey = (SIMCONNECT_RECV_RESERVED_KEY*)pData;
-        RecvReservedKey(rkey);
+        RecvReservedKey((SIMCONNECT_RECV_RESERVED_KEY*)pData);
         break;
     }
 #endif
@@ -656,8 +655,7 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV* pData, DWORD cbData, void *pC
     }
     case SIMCONNECT_RECV_ID_EXCEPTION:
     {
-        SIMCONNECT_RECV_EXCEPTION *ex = (SIMCONNECT_RECV_EXCEPTION*)pData;
-        RecvException(ex);
+        RecvException((SIMCONNECT_RECV_EXCEPTION*)pData);
         break;
     }
     }

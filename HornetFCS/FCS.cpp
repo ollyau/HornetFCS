@@ -232,6 +232,7 @@ FBW::FBW()
     m_surfaceRelativeGroundSpeed(std::make_shared<AircraftVar>("SURFACE RELATIVE GROUND SPEED", "knots")),
     m_takeoffTrimEnabled(false),
     m_cfgValid(false),
+    m_cfgPath(""),
     deltaTime(-1.0),
     m_flapSelection(0),
     m_atcSpeed(0.0),
@@ -242,6 +243,8 @@ FBW::~FBW() {}
 
 bool FBW::InitializeData(std::string const& cfgPath)
 {
+    m_cfgPath = cfgPath;
+
     auto szCStar = Utils::ReadIni(cfgPath, "HornetFCS", "CStar");
     auto szLevelFlight = Utils::ReadIni(cfgPath, "HornetFCS", "LevelFlight");
     auto szRoll = Utils::ReadIni(cfgPath, "HornetFCS", "Aileron");
