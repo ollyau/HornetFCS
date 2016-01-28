@@ -95,6 +95,7 @@ copy "$(OutDir)$(TargetName).pdb" "D:\Program Files (x86)\Microsoft Games\Micros
     <ClInclude Include="D2D_Classes.h" />
     <ClInclude Include="FCS.h" />
     <ClInclude Include="GaugeRes.h" />
+    <ClInclude Include="Optional.h" />
     <ClInclude Include="PIDController.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SimConnectData.h" />

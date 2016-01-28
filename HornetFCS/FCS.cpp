@@ -200,7 +200,6 @@ double UpAndAway(double pitchRate, double GForce, double aoa, double currentAoA,
 
 FBW::FBW()
     :
-    m_flightData(nullptr),
     m_transientFlaps(std::make_shared<Flaps>()),
     m_desiredFlaps(std::make_shared<Flaps>()),
     m_cStar(std::make_shared<PIDController>(0, 0, 0, -100, 100)),
@@ -358,9 +357,9 @@ std::pair<bool, long> FBW::SetRudder(long stickZ)
     case RudderState::OnGround:
     {
         auto rudderVal = stickZ;
-        if (m_surfaceRelativeGroundSpeed->Get() > 5.0 && abs(rudderVal) > 3495L)
+        if (m_surfaceRelativeGroundSpeed->Get() > 10.0 && abs(rudderVal) > 4369L)
         {
-            rudderVal = rudderVal > 0 ? 3495L : -3495L;
+            rudderVal = rudderVal > 0 ? 4369L : -4369L;
         }
         return std::make_pair(true, rudderVal);
     }
@@ -491,7 +490,7 @@ void FBW::Update6Hz()
 
 std::pair<bool, bool> FBW::SetState(FlightData* fd)
 {
-    m_flightData = fd;
+    m_flightData = *fd;
 
     if (fd->HydraulicPressure1 < 1500.0f && fd->HydraulicPressure2 < 1500.0f && fd->ApuPercent < 0.7f)
     {

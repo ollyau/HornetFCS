@@ -2,6 +2,7 @@
 
 #include "AircraftVar.h"
 #include "NamedVar.h"
+#include "Optional.h"
 #include "SimConnectData.h"
 #include "PIDController.h"
 
@@ -95,7 +96,7 @@ public:
 #endif
 
 private:
-    FlightData* m_flightData;
+    std::experimental::optional<FlightData> m_flightData;
     std::shared_ptr<Flaps> m_transientFlaps;
     std::shared_ptr<Flaps> m_desiredFlaps;
 
