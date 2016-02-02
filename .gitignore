@@ -187,3 +187,6 @@ FakesAssemblies/
 GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
+
+# https://stackoverflow.com/a/34620345
+*.VC.opendb

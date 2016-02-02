@@ -100,12 +100,12 @@ private:
     std::shared_ptr<Flaps> m_transientFlaps;
     std::shared_ptr<Flaps> m_desiredFlaps;
 
-    PIDController::Ptr m_cStar;
-    PIDController::Ptr m_levelFlight;
-    PIDController::Ptr m_roll;
-    PIDController::Ptr m_sideslip;
-    PIDController::Ptr m_throttleApproach;
-    PIDController::Ptr m_throttleCruise;
+    PIDController::PIDControllerCustom::Ptr m_cStar;
+    PIDController::IController::Ptr m_levelFlight;
+    PIDController::IController::Ptr m_roll;
+    PIDController::IController::Ptr m_sideslip;
+    PIDController::IController::Ptr m_throttleApproach;
+    PIDController::IController::Ptr m_throttleCruise;
 
     State m_mainState;
     RudderState m_yawState;

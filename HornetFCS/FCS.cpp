@@ -202,12 +202,12 @@ FBW::FBW()
     :
     m_transientFlaps(std::make_shared<Flaps>()),
     m_desiredFlaps(std::make_shared<Flaps>()),
-    m_cStar(std::make_shared<PIDController>(0, 0, 0, -100, 100)),
-    m_levelFlight(std::make_shared<PIDController>(0, 0, 0, -100, 100)),
-    m_roll(std::make_shared<PIDController>(0, 0, 0, -100, 100)),
-    m_sideslip(std::make_shared<PIDController>(0, 0, 0, -100, 100)),
-    m_throttleApproach(std::make_shared<PIDController>(0, 0, 0, -100, 60)),
-    m_throttleCruise(std::make_shared<PIDController>(0, 0, 0, -100, 60)),
+    m_cStar(std::make_shared<PIDController::PIDControllerCustom>(0, 0, 0, -100, 100)),
+    m_levelFlight(PIDController::Factory::Make(0, 0, 0, -100, 100)),
+    m_roll(PIDController::Factory::Make(0, 0, 0, -100, 100)),
+    m_sideslip(PIDController::Factory::Make(0, 0, 0, -100, 100)),
+    m_throttleApproach(PIDController::Factory::Make(0, 0, 0, -100, 60)),
+    m_throttleCruise(PIDController::Factory::Make(0, 0, 0, -100, 60)),
     m_gScalar(0.0),
     m_pitchScalar(0.0),
     m_aoaScalar(0.0),
@@ -272,12 +272,12 @@ bool FBW::InitializeData(std::string const& cfgPath)
 
         if (cStarVec.size() == 3 && levelFlightVec.size() == 3 && rollVec.size() == 3 && sideslipVec.size() == 3 && throttleApproachVec.size() == 3 && throttleCruiseVec.size() == 3)
         {
-            m_cStar = std::make_shared<PIDController>(cStarVec[0], cStarVec[1], cStarVec[2], -100.0, 100.0);
-            m_levelFlight = std::make_shared<PIDController>(levelFlightVec[0], levelFlightVec[1], levelFlightVec[2], -100.0, 100.0);
-            m_roll = std::make_shared<PIDController>(rollVec[0], rollVec[1], rollVec[2], -100.0, 100.0);
-            m_sideslip = std::make_shared<PIDController>(sideslipVec[0], sideslipVec[1], sideslipVec[2], -100.0, 100.0);
-            m_throttleApproach = std::make_shared<PIDController>(throttleApproachVec[0], throttleApproachVec[1], throttleApproachVec[2], -100.0, throttlePidMax);
-            m_throttleCruise = std::make_shared<PIDController>(throttleCruiseVec[0], throttleCruiseVec[1], throttleCruiseVec[2], -100.0, throttlePidMax);
+            m_cStar = std::make_shared<PIDController::PIDControllerCustom>(cStarVec[0], cStarVec[1], cStarVec[2], -100.0, 100.0);
+            m_levelFlight = PIDController::Factory::Make(levelFlightVec[0], levelFlightVec[1], levelFlightVec[2], -100.0, 100.0);
+            m_roll = PIDController::Factory::Make(rollVec[0], rollVec[1], rollVec[2], -100.0, 100.0);
+            m_sideslip = PIDController::Factory::Make(sideslipVec[0], sideslipVec[1], sideslipVec[2], -100.0, 100.0);
+            m_throttleApproach = PIDController::Factory::Make(throttleApproachVec[0], throttleApproachVec[1], throttleApproachVec[2], -100.0, throttlePidMax);
+            m_throttleCruise = PIDController::Factory::Make(throttleCruiseVec[0], throttleCruiseVec[1], throttleCruiseVec[2], -100.0, throttlePidMax);
             m_gScalar = std::stod(GForce);
             m_pitchScalar = std::stod(pitchRate);
             m_aoaScalar = std::stod(aoa);
@@ -644,7 +644,7 @@ double FBW::GetCurrentElevator()
             m_aoaScalar
             );
 
-        return m_cStar->Calculate(currentValue, desiredValue, deltaTime) * 163.83;
+        return m_cStar->Calculate(currentValue, desiredValue, deltaTime, 1.0) * 163.83;
     }
     case Mode::UpAndAway:
     {
@@ -672,7 +672,14 @@ double FBW::GetCurrentElevator()
             m_highAoAScalar
             );
 
-        return m_cStar->Calculate(currentValue, desiredValue, deltaTime) * 163.83;
+        auto val = abs(static_cast<double>(m_stickY) / 163.83);
+        auto ki = 1.0;
+        if (val < 10.0)
+        {
+            ki = val / 10.0;
+        }
+
+        return m_cStar->Calculate(currentValue, desiredValue, deltaTime, ki) * 163.83;
     }
     default:
     {
