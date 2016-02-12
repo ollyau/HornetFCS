@@ -23,6 +23,11 @@ HRESULT hr = NULL;
 HANDLE hSimConnect = nullptr;
 FCS::FBW::Ptr fbw = nullptr;
 
+typedef double(__stdcall *GetElapsedSimTimeSec)();
+GetElapsedSimTimeSec getSimTime = nullptr;
+double currentSimTime = 0.0;
+double previousSimTime = 0.0;
+
 #ifdef DATA_GAUGE_ENABLED
 template <class T>
 void __stdcall GaugeCallback(GAUGEHDR *pgauge, int service_id, unsigned int extra_data)
@@ -218,8 +223,31 @@ void DisplayText(SIMCONNECT_TEXT_TYPE textType, float durationSeconds, std::stri
     hr = SimConnect_Text(hSimConnect, textType, durationSeconds, EVENT_DISPLAY_TEXT, text.size() + 1, (void*)text.c_str());
 }
 
-void Open()
+void Open(SIMCONNECT_RECV_OPEN *data)
 {
+    if (!getSimTime)
+    {
+        HMODULE simschedulerDll = GetModuleHandle(L"simscheduler.dll");
+        if (simschedulerDll)
+        {
+            if (data->dwApplicationVersionMajor == 10UL)
+            {
+                if (data->dwApplicationBuildMajor == 61472UL)
+                {
+                    getSimTime = (GetElapsedSimTimeSec)GetProcAddress(simschedulerDll, MAKEINTRESOURCEA(4));
+                }
+                else
+                {
+                    getSimTime = (GetElapsedSimTimeSec)GetProcAddress(simschedulerDll, MAKEINTRESOURCEA(6));
+                }
+            }
+            else if (data->dwApplicationVersionMajor == 3UL || (data->dwApplicationVersionMajor == 2UL && data->dwApplicationVersionMinor == 5UL))
+            {
+                getSimTime = (GetElapsedSimTimeSec)GetProcAddress(simschedulerDll, "?GetElapsedSimTimeSec@@YGNXZ");
+            }
+        }
+    }
+
 #ifndef NDEBUG
     hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_RESERVED_KEY_REQUEST);
     hr = SimConnect_RequestReservedKey(hSimConnect, EVENT_RESERVED_KEY_REQUEST, "q", "a", "z");
@@ -337,7 +365,10 @@ void AirFileRequest(SIMCONNECT_RECV_SYSTEM_STATE *evt)
         {
             hr = SimConnect_RequestSystemState(hSimConnect, REQUEST_FLIGHT_PLAN, "FlightPlan");
             hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_6HZ, "6Hz");
-            hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_FRAME, "Frame");
+            if (!getSimTime)
+            {
+                hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_FRAME, "Frame");
+            }
             hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FLIGHT_DATA, DEFINITION_FLIGHT_DATA, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_DATA_REQUEST_FLAG_DEFAULT);
             hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FLAP_HANDLE, DEFINITION_FLAP_HANDLE, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_DATA_REQUEST_FLAG_CHANGED);
         }
@@ -387,7 +418,13 @@ void ThrottleSet(SIMCONNECT_RECV_EVENT *evt, uint8_t throttleIdx = 0U)
 void FlightDataRequest(SIMCONNECT_RECV_SIMOBJECT_DATA *pObjData)
 {
     auto flightData = (FlightData*)&pObjData->dwData;
-    if (fbw->deltaTime > 0.0f)
+    if (getSimTime)
+    {
+        previousSimTime = currentSimTime == 0.0 ? getSimTime() : currentSimTime;
+        currentSimTime = getSimTime();
+        fbw->deltaTime = currentSimTime - previousSimTime;
+    }
+    if (fbw->deltaTime > 0.0)
     {
         auto fbwState = fbw->SetState(flightData);
         auto fbwTrim = fbw->SetMode();
@@ -537,7 +574,7 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV* pData, DWORD cbData, void *pC
     }
     case SIMCONNECT_RECV_ID_OPEN:
     {
-        Open();
+        Open((SIMCONNECT_RECV_OPEN*)pData);
         break;
     }
     case SIMCONNECT_RECV_ID_EXCEPTION:
