@@ -1,15 +1,14 @@
 #pragma once
 
-#include <Windows.h>
 #include <d2d1.h>
 #include <DWrite.h>
 #include <gauges.h>
 #include <memory>
+#include <Windows.h>
 
 #include "FCS.h"
 
 #pragma comment(lib, "d2d1.lib")
-#pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "dwrite.lib")
 
 namespace Gauge

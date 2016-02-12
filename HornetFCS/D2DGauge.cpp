@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#include "D2D_Classes.h"
+#include "D2DGauge.h"
 
 #include <cassert>
 #include <process.h>

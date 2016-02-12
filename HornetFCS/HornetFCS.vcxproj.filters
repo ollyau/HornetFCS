@@ -42,9 +42,6 @@
     <ClInclude Include="SimConnectData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D2D_Classes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="NamedVar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -52,6 +49,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Optional.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D2DGauge.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -74,7 +74,7 @@
     <ClCompile Include="FCS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D2D_Classes.cpp">
+    <ClCompile Include="D2DGauge.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

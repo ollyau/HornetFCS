@@ -16,7 +16,7 @@
 #include <string>
 
 #ifdef DATA_GAUGE_ENABLED
-#include "D2D_Classes.h"
+#include "D2DGauge.h"
 #endif
 
 HRESULT hr = NULL;
