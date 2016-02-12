@@ -54,6 +54,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>D:\Program Files (x86)\Microsoft Games\Microsoft Flight Simulator X SDK\SDK\Core Utilities Kit\SimConnect SDK\inc;D:\Program Files (x86)\Microsoft Games\Microsoft Flight Simulator X SDK\SDK\SimObject Creation Kit\Panels and Gauges SDK\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <DisableSpecificWarnings>4005</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -75,6 +76,7 @@ copy "$(OutDir)$(TargetName).pdb" "D:\Program Files (x86)\Microsoft Games\Micros
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;HORNETFCS_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>D:\Program Files (x86)\Microsoft Games\Microsoft Flight Simulator X SDK\SDK\Core Utilities Kit\SimConnect SDK\inc;D:\Program Files (x86)\Microsoft Games\Microsoft Flight Simulator X SDK\SDK\SimObject Creation Kit\Panels and Gauges SDK\inc</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4005</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

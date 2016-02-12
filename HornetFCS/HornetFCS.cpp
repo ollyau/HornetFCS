@@ -17,14 +17,39 @@
 
 #ifdef DATA_GAUGE_ENABLED
 #include "D2D_Classes.h"
-#include "GaugeRes.h"
-
-#include <assert.h>
-#include <process.h>
 #endif
 
 HRESULT hr = NULL;
-HANDLE hSimConnect = NULL;
+HANDLE hSimConnect = nullptr;
+FCS::FBW::Ptr fbw = nullptr;
+
+#ifdef DATA_GAUGE_ENABLED
+template <class T>
+void __stdcall GaugeCallback(GAUGEHDR *pgauge, int service_id, unsigned int extra_data)
+{
+    switch (service_id)
+    {
+    case PANEL_SERVICE_CONNECT_TO_WINDOW:
+        // when the panel service starts, instantiate T and store pointer to T in user_data
+        assert(pgauge->user_data == 0U);
+        pgauge->user_data = reinterpret_cast<unsigned int>(new T(fbw));
+        reinterpret_cast<T*>(pgauge->user_data)->SetCanvas(reinterpret_cast<PELEMENT_STATIC_IMAGE>(pgauge->elements_list[0]));
+        break;
+    case PANEL_SERVICE_DISCONNECT:
+        // when the panel service ends, we destroy the C++ gauge object freeing the heap.
+        assert(pgauge->user_data);
+        delete reinterpret_cast<T*>(pgauge->user_data);
+        pgauge->user_data = 0U;
+        break;
+    default:
+        // in all other cases, we use the C++ pointer to jump to the generic Callback function of
+        // the framework that will then call the appropriate Virtual function defined in the actual gauges.
+        assert(pgauge->user_data);
+        reinterpret_cast<T*>(pgauge->user_data)->Callback(pgauge, service_id);
+        break;
+    }
+}
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 //  FCS Gauge Declaration
@@ -41,25 +66,9 @@ extern MOUSERECT fcs_gauge_mouse_rect[];
 // {8E69EBE3-34E9-4E67-81FA-3BD1A00905C8}
 static const GUID fcs_gauge_guid = { 0x8e69ebe3, 0x34e9, 0x4e67, { 0x81, 0xfa, 0x3b, 0xd1, 0xa0, 0x9, 0x5, 0xc8 } };
 
-GAUGE_HEADER_FS1000(
-    GAUGEHDR_VAR_NAME,
-    GAUGE_W,
-    fcs_gauge_name,
-    &fcs_gauge_element_list,
-    fcs_gauge_mouse_rect,
-    0,
-    0L, 0L,
-    fcs_gauge_guid,
-    0, 0, 0, 0, 0);
-
-MAKE_STATIC(gaugeTransparent_image,
-    BMP_BACKGROUND,
-    NULL,
-    NULL,
-    IMAGE_CREATE_DIBSECTION | IMAGE_USE_TRANSPARENCY | IMAGE_USE_ALPHA | IMAGE_USE_ERASE | IMAGE_ERASE_ALWAYS,
-    0,
-    0, 0)
-    PELEMENT_HEADER		fcs_gauge_element_list = &gaugeTransparent_image.header;
+GAUGE_HEADER_FS1000(GAUGEHDR_VAR_NAME, GAUGE_W, fcs_gauge_name, &fcs_gauge_element_list, fcs_gauge_mouse_rect, 0, 0L, 0L, fcs_gauge_guid, 0, 0, 0, 0, 0);
+MAKE_STATIC(gaugeTransparent_image, BMP_BACKGROUND, NULL, NULL, IMAGE_CREATE_DIBSECTION | IMAGE_USE_TRANSPARENCY | IMAGE_USE_ALPHA | IMAGE_USE_ERASE | IMAGE_ERASE_ALWAYS, 0, 0, 0)
+PELEMENT_HEADER fcs_gauge_element_list = &gaugeTransparent_image.header;
 
 MOUSE_BEGIN(fcs_gauge_mouse_rect, HELP_NONE, 0, 0)
 MOUSE_END
@@ -74,8 +83,6 @@ MOUSE_END
 //  Data Gauge Declaration
 /////////////////////////////////////////////////////////////////////////////
 
-void FSAPI gcallback(GAUGEHDR* gauge, int serviceId, unsigned);
-
 #define	GAUGE_NAME	"Data"
 #define	GAUGEHDR_VAR_NAME	gaugehdr_Data
 #define	GAUGE_W	1
@@ -87,28 +94,10 @@ extern MOUSERECT			data_gauge_mouse_rect[];
 // {FFC00355-CBCB-4840-AED5-2D8E3DFA7339}
 static const GUID data_gauge_guid = { 0xffc00355, 0xcbcb, 0x4840, { 0xae, 0xd5, 0x2d, 0x8e, 0x3d, 0xfa, 0x73, 0x39 } };
 
-GAUGE_HEADER_FS1000(
-    GAUGEHDR_VAR_NAME,
-    GAUGE_W,
-    data_gauge_name,
-    &data_gauge_element_list,
-    data_gauge_mouse_rect,
-    gcallback,
-    0L,
-    0L,
-    data_gauge_guid,
-    0, 0, 0, 0, 0);
+GAUGE_HEADER_FS1000(GAUGEHDR_VAR_NAME, GAUGE_W, data_gauge_name, &data_gauge_element_list, data_gauge_mouse_rect, GaugeCallback<Gauge::D2DGauge>, 0L, 0L, data_gauge_guid, 0, 0, 0, 0, 0);
 
-MAKE_STATIC(data_gauge_background,
-    BMP_BACKGROUND,
-    NULL,
-    NULL,
-    IMAGE_CREATE_DIBSECTION | IMAGE_USE_TRANSPARENCY | IMAGE_USE_ALPHA | IMAGE_USE_ERASE | IMAGE_ERASE_ALWAYS | IMAGE_USE_BRIGHT,
-    0,
-    0,
-    0
-    )
-    PELEMENT_HEADER data_gauge_element_list = &data_gauge_background.header;
+MAKE_STATIC(data_gauge_background, BMP_BACKGROUND, NULL, NULL, IMAGE_CREATE_DIBSECTION | IMAGE_USE_TRANSPARENCY | IMAGE_USE_ALPHA | IMAGE_USE_ERASE | IMAGE_ERASE_ALWAYS | IMAGE_USE_BRIGHT, 0, 0, 0)
+PELEMENT_HEADER data_gauge_element_list = &data_gauge_background.header;
 
 MOUSE_BEGIN(data_gauge_mouse_rect, HELP_NONE, 0, 0)
 MOUSE_END
@@ -126,8 +115,8 @@ void FSAPI module_init(void);
 void FSAPI module_deinit(void);
 
 GAUGESIMPORT ImportTable = {
-    { 0x0000000F, (PPANELS)NULL },
-    { 0x00000000, NULL }
+    { 0x0000000F, (PPANELS)nullptr },
+    { 0x00000000, nullptr }
 };
 
 GAUGESLINKAGE Linkage =
@@ -151,22 +140,22 @@ GAUGESLINKAGE Linkage =
 //  Gauge DLL Implementation
 /////////////////////////////////////////////////////////////////////////////
 
-FCS::FBW::Ptr fbw;
-
 void FSAPI module_init(void)
 {
 #ifdef DATA_GAUGE_ENABLED
-    CoInitializeEx(NULL, COINIT_MULTITHREADED);
+    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 #endif
 
     fbw = std::make_shared<FCS::FBW>();
 
     // Instantiate SimConnect
-    hr = SimConnect_Open(&hSimConnect, "Hornet FCS", NULL, 0, 0, 0);
+    hr = SimConnect_Open(&hSimConnect, "Hornet FCS", nullptr, 0, 0, 0);
 
     // Define a callback in this dll so that the simulation can be notified of SimConnect events
     if (hr == S_OK)
-        hr = SimConnect_CallDispatch(hSimConnect, FCS_DispatchProcDLL, NULL);
+    {
+        hr = SimConnect_CallDispatch(hSimConnect, FCS_DispatchProcDLL, nullptr);
+    }
 }
 
 void FSAPI module_deinit(void)
@@ -177,108 +166,6 @@ void FSAPI module_deinit(void)
     hr = SimConnect_MenuDeleteItem(hSimConnect, EVENT_MENU);
     hr = SimConnect_Close(hSimConnect);
 };
-
-#ifdef DATA_GAUGE_ENABLED
-
-unsigned int CALLBACK d2d_gauge_drawcb(void* args)
-{
-    D2DGauge* gau = reinterpret_cast<D2DGauge*>(args);
-
-    ID2D1SolidColorBrush* solidbrush_white = NULL;
-    D2D1_RECT_F* rect_main = NULL;
-    IDWriteTextFormat* txtfmt_segoe = NULL;
-
-    gau->ptarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &solidbrush_white);
-    rect_main = new D2D1_RECT_F(D2D1::RectF(10.0f, 10.0f, static_cast<float>(gau->sz_x) - 20.0f, static_cast<float>(gau->sz_y) - 20.0f));
-    gau->pwfactory->CreateTextFormat(L"Segoe UI", NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 16.0f, L"en-US", &txtfmt_segoe);
-    txtfmt_segoe->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
-    txtfmt_segoe->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-    txtfmt_segoe->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_DEFAULT, 0.00f, 0.00f);
-
-    assert(gau);
-    while (gau->end == FALSE)
-    {
-        if (gau->draw == TRUE)
-        {
-            gau->ptarget->BeginDraw();
-            gau->ptarget->Clear();
-
-            auto text = Utils::s2ws(fbw->ToString());
-            gau->ptarget->DrawTextW(text.c_str(), text.size(), txtfmt_segoe, rect_main, solidbrush_white);
-
-            gau->ptarget->EndDraw();
-            SET_OFF_SCREEN(gau->canvas);
-            gau->draw = FALSE;
-        }
-        Sleep(20);
-    }
-
-    if (solidbrush_white)
-        solidbrush_white->Release();
-    if (txtfmt_segoe)
-        txtfmt_segoe->Release();
-    delete rect_main;
-
-    return 0;
-}
-
-void FSAPI gcallback(GAUGEHDR* gauge, int serviceId, unsigned) {
-    switch (serviceId) {
-    case PANEL_SERVICE_CONNECT_TO_WINDOW:
-        assert(gauge->user_data == 0);
-        gauge->user_data = reinterpret_cast<unsigned int>(new D2DGauge());
-        break;
-    case PANEL_SERVICE_DISCONNECT:
-        assert(gauge->user_data);
-        delete reinterpret_cast<D2DGauge*>(gauge->user_data);
-        gauge->user_data = NULL;
-        break;
-    case PANEL_SERVICE_PRE_DRAW:
-    {
-        assert(gauge->user_data);
-        D2DGauge* g = reinterpret_cast<D2DGauge*>(gauge->user_data);
-        if (g->canvas)
-        {
-            if (gauge->elements_list[0])
-            {
-                g->draw = TRUE;
-            }
-        }
-        break;
-    }
-    case PANEL_SERVICE_POST_INSTALL:
-    {
-        assert(gauge->user_data);
-        D2DGauge* g = reinterpret_cast<D2DGauge*>(gauge->user_data);
-        PELEMENT_STATIC_IMAGE element = reinterpret_cast<PELEMENT_STATIC_IMAGE>(gauge->elements_list[0]);
-        g->canvas = element;
-        if (element->hdc || element->hdc != INVALID_HANDLE_VALUE)
-        {
-            g->end = TRUE;
-            if (g->drawthread != INVALID_HANDLE_VALUE)
-            {
-                WaitForSingleObject(g->drawthread, INFINITE);
-            }
-
-            g->sz_x = element->image_data.final->dim.x;
-            g->sz_y = element->image_data.final->dim.y;
-
-            RECT re;
-            re.top = 0;
-            re.left = 0;
-            re.bottom = static_cast<long>(g->sz_y);
-            re.right = static_cast<long>(g->sz_x);
-
-            g->ptarget->BindDC(element->hdc, &re);
-            g->end = FALSE;
-            g->drawthread = (HANDLE)_beginthreadex(NULL, NULL, d2d_gauge_drawcb, g, NULL, NULL);
-        }
-        break;
-    }
-    }
-}
-
-#endif
 
 char* SimConnectExceptionLookup(unsigned long i)
 {
