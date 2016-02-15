@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 namespace PIDController
 {
@@ -22,6 +23,8 @@ public:
 
     virtual double Calculate(double processVariable, double setPoint, double deltaTime) = 0;
     virtual void ResetError() = 0;
+
+    virtual std::string ToString() const = 0;
 };
 
 //-----------------------------------------------------------------------------
@@ -37,14 +40,16 @@ public:
     PIDControllerCustom(double gain_Kp, double gain_Ki, double gain_Kd, double _minVal, double _maxVal) :
         m_Kp(gain_Kp), m_Ki(gain_Ki), m_Kd(gain_Kd), m_clipMinVal(_minVal), m_clipMaxVal(_maxVal), m_constrainOutputValues(true) { }
 
-    virtual double GetPreviousError() const { return m_previousError; };
-    virtual double GetTotalError() const { return m_cumulativeError; };
-    virtual double GetKp() const { return m_Kp; };
-    virtual double GetKi() const { return m_Ki; };
-    virtual double GetKd() const { return m_Kd; };
+    double GetPreviousError() const { return m_previousError; };
+    double GetTotalError() const { return m_cumulativeError; };
+    double GetKp() const { return m_Kp; };
+    double GetKi() const { return m_Ki; };
+    double GetKd() const { return m_Kd; };
 
-    virtual double Calculate(double processVariable, double setPoint, double deltaTime, double ki);
-    virtual void ResetError();
+    double Calculate(double processVariable, double setPoint, double deltaTime, double ki);
+    void ResetError();
+
+    std::string ToString() const;
 private:
     double m_previousError = 0.0;
     double m_cumulativeError = 0.0;

@@ -40,6 +40,7 @@ enum class RudderState
 enum class Mode
 {
     OnGround,
+    Mechanical,
     PoweredApproach,
     UpAndAway
 };

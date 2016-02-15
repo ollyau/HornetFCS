@@ -1,6 +1,9 @@
 #include "stdafx.h"
 
 #include "FCS.h"
+
+#include <sstream>
+
 #include "Utils.h"
 
 namespace FCS
@@ -40,6 +43,7 @@ char* ModeLookup(Mode mode)
     switch (mode)
     {
     case Mode::OnGround: return "OnGround";
+    case Mode::Mechanical: return "Mechanical";
     case Mode::PoweredApproach: return "PoweredApproach";
     case Mode::UpAndAway: return "UpAndAway";
     default: return "Unknown FCS::Mode value";
@@ -494,8 +498,8 @@ std::pair<bool, bool> FBW::SetState(FlightData* fd)
 
     if (fd->HydraulicPressure1 < 1500.0f && fd->HydraulicPressure2 < 1500.0f && fd->ApuPercent < 0.7f)
     {
-        m_mainState = State::Disabled;
-        m_yawState = RudderState::Disabled;
+        m_mainState = State::Enabled;
+        m_yawState = RudderState::Enabled;
     }
     else if (!!fd->SimOnGround || fd->AirspeedTrue < 50.0 || !!m_spinSwitch->Get() || m_takeoffTrimEnabled)
     {
@@ -518,7 +522,15 @@ std::pair<bool, bool> FBW::SetState(FlightData* fd)
 
 std::pair<bool, double> FBW::SetMode()
 {
-    if (!!m_flightData->SimOnGround)
+    if (m_flightData->HydraulicPressure1 < 1500.0f && m_flightData->HydraulicPressure2 < 1500.0f && m_flightData->ApuPercent < 0.7f)
+    {
+        if (m_mode != Mode::Mechanical)
+        {
+            m_mode = Mode::Mechanical;
+            return std::make_pair(true, 0.0);
+        }
+    }
+    else if (!!m_flightData->SimOnGround)
     {
         if (m_mode != Mode::OnGround)
         {
@@ -681,6 +693,10 @@ double FBW::GetCurrentElevator()
 
         return m_cStar->Calculate(currentValue, desiredValue, deltaTime, ki) * 163.83;
     }
+    case Mode::Mechanical:
+    {
+        return m_stickY / (m_flapSelection > 0 ? 1.5 : 2.0);
+    }
     default:
     {
         // this should not be triggered
@@ -691,6 +707,11 @@ double FBW::GetCurrentElevator()
 
 double FBW::GetCurrentAileron()
 {
+    if (m_mode == Mode::Mechanical)
+    {
+        return m_stickX / 2.0;
+    }
+
     auto rollRate = AileronRollRate(m_stickX, m_flightData->AileronTrimPercent * 60.0);
 
     if (m_mode == Mode::PoweredApproach)
@@ -704,6 +725,11 @@ double FBW::GetCurrentAileron()
 
 double FBW::GetCurrentRudder()
 {
+    if (m_mode == Mode::Mechanical)
+    {
+        return m_stickZ / 2.0;
+    }
+
     return m_sideslip->Calculate(m_flightData->SideslipAngle, 0.0, deltaTime) * 163.83;
 }
 
@@ -810,112 +836,36 @@ std::shared_ptr<Flaps> FBW::GetCurrentFlaps()
 
 #ifdef DATA_GAUGE_ENABLED
 
-auto fmt = R"(CStar (P=%f, I=%f, D=%f)
-previous error %f
-total error %f
-
-Level Flight (P=%f, I=%f, D=%f)
-previous error %f
-total error %f
-
-Rudder (P=%f, I=%f, D=%f)
-previous error %f
-total error %f
-
-Aileron (P=%f, I=%f, D=%f)
-previous error %f
-total error %f
-
-Throttle Approach (P=%f, I=%f, D=%f)
-previous error %f
-total error %f
-
-Throttle Cruise (P=%f, I=%f, D=%f)
-previous error %f
-total error %f
-
-FCS State %s
-FCS Rudder State %s
-FCS Mode %s
-ATC Mode %s
-
-Stick X %d
-Stick Y %d
-Stick Z %d
-Slider %d
-Slider 1 %d
-Slider 2 %d
-Flaps %d
-Spin Switch %f
-ATC Switch %f
-Takeoff Trim Switch %f
-
-TAS (knots) %f
-AoA (degrees) %f
-G force %f)";
-
 std::string FBW::ToString() const
 {
-    char buf[2048];
-    sprintf_s(buf, sizeof(buf), fmt,
-        m_cStar->GetKp(),
-        m_cStar->GetKi(),
-        m_cStar->GetKd(),
-        m_cStar->GetPreviousError(),
-        m_cStar->GetTotalError(),
+    std::ostringstream ss;
+    ss << "CStar " << m_cStar->ToString() << std::endl;
+    ss << "Level Flight " << m_levelFlight->ToString() << std::endl;
+    ss << "Rudder " << m_sideslip->ToString() << std::endl;
+    ss << "Aileron " << m_roll->ToString() << std::endl;
+    ss << "Throttle Approach " << m_throttleApproach->ToString() << std::endl;
+    ss << "Throttle Cruise " << m_throttleCruise->ToString() << std::endl;
 
-        m_levelFlight->GetKp(),
-        m_levelFlight->GetKi(),
-        m_levelFlight->GetKd(),
-        m_levelFlight->GetPreviousError(),
-        m_levelFlight->GetTotalError(),
+    ss << "FCS State " << StateLookup(m_mainState) << std::endl;
+    ss << "FCS Rudder State " << RudderStateLookup(m_yawState) << std::endl;
+    ss << "FCS Mode " << ModeLookup(m_mode) << std::endl;
+    ss << "ATC Mode " << ATCModeLookup(m_atcMode) << std::endl;
 
-        m_sideslip->GetKp(),
-        m_sideslip->GetKi(),
-        m_sideslip->GetKd(),
-        m_sideslip->GetPreviousError(),
-        m_sideslip->GetTotalError(),
+    ss << "Stick X " << m_stickX << std::endl;
+    ss << "Stick Y " << m_stickY << std::endl;
+    ss << "Stick Z " << m_stickZ << std::endl;
+    ss << "Slider " << m_slider[0] << std::endl;
+    ss << "Slider 1 " << m_slider[1] << std::endl;
+    ss << "Slider 2 " << m_slider[2] << std::endl;
+    ss << "Flaps " << m_flapSelection << std::endl;
+    ss << "Spin Switch " << m_spinSwitch->Get() << std::endl;
+    ss << "ATC Switch " << m_atcSwitch->Get() << std::endl;
+    ss << "Takeoff Trim Switch " << m_takeoffTrim->Get() << std::endl;
 
-        m_roll->GetKp(),
-        m_roll->GetKi(),
-        m_roll->GetKd(),
-        m_roll->GetPreviousError(),
-        m_roll->GetTotalError(),
-
-        m_throttleApproach->GetKp(),
-        m_throttleApproach->GetKi(),
-        m_throttleApproach->GetKd(),
-        m_throttleApproach->GetPreviousError(),
-        m_throttleApproach->GetTotalError(),
-
-        m_throttleCruise->GetKp(),
-        m_throttleCruise->GetKi(),
-        m_throttleCruise->GetKd(),
-        m_throttleCruise->GetPreviousError(),
-        m_throttleCruise->GetTotalError(),
-
-        StateLookup(m_mainState),
-        RudderStateLookup(m_yawState),
-        ModeLookup(m_mode),
-        ATCModeLookup(m_atcMode),
-
-        m_stickX,
-        m_stickY,
-        m_stickZ,
-        m_slider[0],
-        m_slider[1],
-        m_slider[2],
-        m_flapSelection,
-        m_spinSwitch->Get(),
-        m_atcSwitch->Get(),
-        m_takeoffTrim->Get(),
-
-        !m_flightData ? 0.0 : m_flightData->AirspeedTrue,
-        !m_flightData ? 0.0 : m_flightData->AngleOfAttack,
-        !m_flightData ? 0.0 : m_flightData->GForce
-        );
-
-    return std::string(buf);
+    ss << "TAS (knots) " << (!m_flightData ? 0.0 : m_flightData->AirspeedTrue) << std::endl;
+    ss << "AoA (degrees) " << (!m_flightData ? 0.0 : m_flightData->AngleOfAttack) << std::endl;
+    ss << "G force " << (!m_flightData ? 0.0 : m_flightData->GForce) << std::endl;
+    return ss.str();
 }
 
 #endif

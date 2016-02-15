@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include <memory>
+#include <sstream>
 
 #include "PIDController.h"
 
@@ -37,6 +38,8 @@ public:
 
     virtual double Calculate(double processVariable, double setPoint, double deltaTime);
     virtual void ResetError();
+
+    virtual std::string ToString() const;
 private:
     double m_previousError = 0.0;
     double m_cumulativeError = 0.0;
@@ -91,6 +94,15 @@ void PIDController::ResetError()
     m_cumulativeError = 0.0;
 }
 
+std::string PIDController::ToString() const
+{
+    std::ostringstream ss;
+    ss << "P=" << m_Kp << ", I=" << m_Ki << ", D=" << m_Kd << std::endl;
+    ss << "Previous Error: " << m_previousError << std::endl;
+    ss << "Cumulative Error: " << m_cumulativeError << std::endl;
+    return ss.str();
+}
+
 //-----------------------------------------------------------------------------
 
 double PIDControllerCustom::Calculate(double processVariable, double setPoint, double deltaTime, double ki)
@@ -131,6 +143,15 @@ void PIDControllerCustom::ResetError()
 {
     m_previousError = 0.0;
     m_cumulativeError = 0.0;
+}
+
+std::string PIDControllerCustom::ToString() const
+{
+    std::ostringstream ss;
+    ss << "P=" << m_Kp << ", I=" << m_Ki << ", D=" << m_Kd << std::endl;
+    ss << "Previous Error: " << m_previousError << std::endl;
+    ss << "Cumulative Error: " << m_cumulativeError << std::endl;
+    return ss.str();
 }
 
 //-----------------------------------------------------------------------------

@@ -13,6 +13,7 @@
 #include "Utils.h"
 
 #include <memory>
+#include <sstream>
 #include <string>
 
 #ifdef DATA_GAUGE_ENABLED
@@ -342,9 +343,11 @@ void RecvReservedKey(SIMCONNECT_RECV_RESERVED_KEY *rkey)
 
 void RecvMenuEvent(SIMCONNECT_RECV_EVENT *evt)
 {
-    char buf[2048];
-    sprintf_s(buf, sizeof(buf), "Hornet FCS Build Timestamp: %s\r\nCFG Path: %s\r\nFCS Initialized: %s", Utils::compile_time_str().c_str(), fbw->GetCfgPath().c_str(), fbw->GetCfgValid() ? "True" : "False");
-    DisplayText(SIMCONNECT_TEXT_TYPE_PRINT_WHITE, 15.0f, buf);
+    std::ostringstream ss;
+    ss << "Hornet FCS Build Timestamp: " << Utils::compile_time_str() << std::endl;
+    ss << "CFG Path: " << fbw->GetCfgPath() << std::endl;
+    ss << "FCS Initialized: " << (fbw->GetCfgValid() ? "True" : "False") << std::endl;
+    DisplayText(SIMCONNECT_TEXT_TYPE_PRINT_WHITE, 15.0f, ss.str());
 }
 
 void RecvException(SIMCONNECT_RECV_EXCEPTION *ex)
