@@ -606,7 +606,7 @@ std::pair<bool, double> FBW::SetAutoThrottle()
     }
     case ATCMode::Cruise:
     {
-        if (m_flapSelection > 0 || m_mainState == State::PassThrough || !!m_flightData->SimOnGround)
+        if (m_flapSelection > 0 || m_mainState == State::PassThrough || m_mode == Mode::Mechanical || !!m_flightData->SimOnGround)
         {
             m_atcSwitch->Set(0.0);
             return std::make_pair(false, 0.0);
@@ -619,7 +619,7 @@ std::pair<bool, double> FBW::SetAutoThrottle()
     }
     case ATCMode::Approach:
     {
-        if (m_flapSelection == 0 || m_flightData->TrailingFlapsLeft < 0.6 || !!m_flightData->SimOnGround || abs(m_flightData->BankDegrees) > 70.0f || m_mainState == State::PassThrough)
+        if (m_flapSelection == 0 || m_flightData->TrailingFlapsLeft < 0.6 || !!m_flightData->SimOnGround || abs(m_flightData->BankDegrees) > 70.0f || m_mainState == State::PassThrough || m_mode == Mode::Mechanical)
         {
             m_atcSwitch->Set(0.0);
             return std::make_pair(false, 0.0);
