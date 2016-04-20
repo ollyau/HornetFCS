@@ -115,7 +115,7 @@ double PIDController::GetKd() const
 double PIDController::Calculate(double processVariable, double setPoint, double deltaTime)
 {
     double currentError = setPoint - processVariable;
-    double dt = (currentError + m_previousError) * deltaTime / 2.0; // trapezoidal
+    double dt = (currentError + m_previousError) * deltaTime / 2.0;
 
     double P = m_Kp * currentError;
     double I = m_Ki * (m_cumulativeError + dt);
@@ -151,7 +151,7 @@ double PIDController::Calculate(double processVariable, double setPoint, double 
 double PIDController::CalculateCustom(double processVariable, double setPoint, double deltaTime, double ki)
 {
     double currentError = setPoint - processVariable;
-    double dt = (currentError + m_previousError) * deltaTime / 2.0; // trapezoidal
+    double dt = (currentError + m_previousError) * deltaTime / 2.0;
 
     double P = m_Kp * currentError;
     double I = m_Ki * (m_cumulativeError + dt) * ki;

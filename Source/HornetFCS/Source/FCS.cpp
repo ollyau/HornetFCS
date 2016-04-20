@@ -6,6 +6,7 @@
 
 #include "FCS.h"
 
+#include <cassert>
 #include <gauges.h>
 #include <sstream>
 
@@ -148,9 +149,8 @@ double ElevatorPitchRate(long elevatorPos, double offset = 0.0)
 
 double ElevatorGForce(long elevatorPos, bool limitG, double offset)
 {
-    // quintic fit {{-100,7.5},{0,1},{100,-3}}
-    // 1 - 0.0525 x + 0.000125 x^2
-    // quintic fit {{-100,10},{0,1},{100,-5}} => 1 - 0.075 x + 0.00015 x^2
+    // quintic fit {{-100,10},{0,1},{100,-5}}
+    // 1 - 0.075 x + 0.00015 x^2
     auto val = static_cast<double>(elevatorPos) / 163.83;
     auto result = 1.0 + offset - (0.075 * val) + (0.00015 * val * val);
     return (limitG && result > 5.5) ? 5.5 : result;
@@ -326,6 +326,7 @@ bool FBW::SetElevator(long stickY)
         }
         return false;
     default:
+        assert(false);
         return false;
     }
 }
@@ -347,6 +348,7 @@ bool FBW::SetAileron(long stickX)
         }
         return false;
     default:
+        assert(false);
         return false;
     }
 }
@@ -381,6 +383,7 @@ std::pair<bool, long> FBW::SetRudder(long stickZ)
     case RudderState::Enabled:
         return std::make_pair(false, 0L);
     default:
+        assert(false);
         return std::make_pair(false, 0L);
     }
 }
@@ -392,7 +395,7 @@ bool FBW::SetThrottle(long slider, uint8_t throttleIdx)
     {
         return true;
     }
-    else if (abs(slider - m_atcSlider[throttleIdx]) > 3277L || abs(m_slider[1] - m_slider[2]) > 3277L) // 3276.6 is 10% of -16383 +16383 range
+    else if (abs(slider - m_atcSlider[throttleIdx]) > 3277L || abs(m_slider[1] - m_slider[2]) > 3277L)
     {
         m_atcSwitch->Set(0.0);
         return true;
@@ -503,7 +506,7 @@ void FBW::Update6Hz()
     }
 }
 
-std::pair<bool, bool> FBW::SetState(FlightData* fd)
+std::pair<bool, bool> FBW::SetState(FlightData *fd)
 {
     m_flightData = *fd;
 
@@ -589,7 +592,6 @@ std::pair<bool, double> FBW::SetAutoThrottle()
     {
     case ATCMode::Disabled:
     {
-        // switch is on; check for conditions to turn on autothrottle
         if (m_flapSelection == 0 && !m_flightData->SimOnGround)
         {
             m_throttleCruise->ResetError();
@@ -642,6 +644,7 @@ std::pair<bool, double> FBW::SetAutoThrottle()
         }
     }
     }
+    assert(false);
     return std::make_pair(false, 0.0);
 }
 
@@ -657,7 +660,7 @@ double FBW::GetCurrentElevator()
             m_flightData->TrailingFlapsLeft,
             m_pitchScalar,
             m_aoaScalar
-            );
+        );
 
         auto currentValue = PoweredApproach(
             ElevatorPitchRate(m_stickY),
@@ -665,7 +668,7 @@ double FBW::GetCurrentElevator()
             m_flightData->TrailingFlapsLeft,
             m_pitchScalar,
             m_aoaScalar
-            );
+        );
 
         return m_cStar->CalculateCustom(currentValue, desiredValue, deltaTime, 1.0) * 163.83;
     }
@@ -682,7 +685,7 @@ double FBW::GetCurrentElevator()
             m_gScalar,
             m_pitchScalar,
             m_highAoAScalar
-            );
+        );
 
         auto currentValue = UpAndAway(
             ElevatorPitchRate(m_stickY, offsetVal),
@@ -693,7 +696,7 @@ double FBW::GetCurrentElevator()
             m_gScalar,
             m_pitchScalar,
             m_highAoAScalar
-            );
+        );
 
         auto val = abs(static_cast<double>(m_stickY) / 163.83);
         auto ki = 1.0;
@@ -710,7 +713,7 @@ double FBW::GetCurrentElevator()
     }
     default:
     {
-        // this should not be triggered
+        assert(false);
         return m_stickY;
     }
     }

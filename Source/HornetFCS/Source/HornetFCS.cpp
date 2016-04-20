@@ -414,9 +414,6 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV *pData, DWORD cbData, void *pC
         case EVENT_MENU:
             RecvMenuEvent(evt);
             return;
-            //default:
-            //    //SimConnect_TransmitClientEvent(g_simConnect, SIMCONNECT_OBJECT_ID_USER, evt->uEventID, evt->dwData, SIMCONNECT_GROUP_PRIORITY_STANDARD, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
-            //    break;
         }
         break;
     }
@@ -478,6 +475,8 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV *pData, DWORD cbData, void *pC
     }
 }
 
+//-----------------------------------------------------------------------------
+
 } // namespace FCS
 
 //-----------------------------------------------------------------------------
@@ -489,20 +488,16 @@ void __stdcall GaugeCallback(GAUGEHDR *pgauge, int service_id, unsigned int extr
     switch (service_id)
     {
     case PANEL_SERVICE_CONNECT_TO_WINDOW:
-        // when the panel service starts, instantiate T and store pointer to T in user_data
         assert(pgauge->user_data == 0U);
         pgauge->user_data = reinterpret_cast<unsigned int>(new T(FCS::g_fbw));
         reinterpret_cast<T*>(pgauge->user_data)->SetCanvas(reinterpret_cast<PELEMENT_STATIC_IMAGE>(pgauge->elements_list[0]));
         break;
     case PANEL_SERVICE_DISCONNECT:
-        // when the panel service ends, we destroy the C++ gauge object freeing the heap.
         assert(pgauge->user_data);
         delete reinterpret_cast<T*>(pgauge->user_data);
         pgauge->user_data = 0U;
         break;
     default:
-        // in all other cases, we use the C++ pointer to jump to the generic Callback function of
-        // the framework that will then call the appropriate Virtual function defined in the actual gauges.
         assert(pgauge->user_data);
         reinterpret_cast<T*>(pgauge->user_data)->Callback(pgauge, service_id);
         break;
@@ -580,10 +575,8 @@ void FSAPI module_init(void)
 
     FCS::g_fbw = std::make_shared<FCS::FBW>();
 
-    // Instantiate SimConnect
     auto hr = SimConnect_Open(&FCS::g_simConnect, "Hornet FCS", nullptr, 0, 0, 0);
 
-    // Define a callback in this dll so that the simulation can be notified of SimConnect events
     if (hr == S_OK)
     {
         SimConnect_CallDispatch(FCS::g_simConnect, FCS::FCS_DispatchProcDLL, nullptr);

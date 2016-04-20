@@ -31,7 +31,7 @@ public:
     void SetCanvas(ELEMENT_STATIC_IMAGE *canvas);
     void Callback(GAUGEHDR *pgauge, int service_id);
 private:
-    static unsigned int __stdcall Draw(void* args);
+    static unsigned int __stdcall Draw(void *args);
 
     ID2D1Factory *m_d2dFactory;
     ID2D1DCRenderTarget *m_d2dTarget;

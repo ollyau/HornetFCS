@@ -14,7 +14,7 @@ namespace Gauge
 
 //-----------------------------------------------------------------------------
 
-AircraftVar::AircraftVar(const char* varName, int unitsEnum) :
+AircraftVar::AircraftVar(const char *varName, int unitsEnum) :
     m_unitsEnum(unitsEnum)
 {
     m_varEnum = get_aircraft_var_enum(varName);
@@ -23,7 +23,7 @@ AircraftVar::AircraftVar(const char* varName, int unitsEnum) :
 
 //-----------------------------------------------------------------------------
 
-AircraftVar::AircraftVar(const char* varName, const char* unitName)
+AircraftVar::AircraftVar(const char *varName, const char *unitName)
 {
     m_varEnum = get_aircraft_var_enum(varName);
     m_unitsEnum = get_units_enum(unitName);
@@ -56,7 +56,7 @@ double AircraftVar::GetUnits(int unitEnum, int index)
 
 //-----------------------------------------------------------------------------
 
-double AircraftVar::GetUnits(const char* unitName, int index)
+double AircraftVar::GetUnits(const char *unitName, int index)
 {
     auto unit = get_units_enum(unitName);
     assert(unit >= 0);

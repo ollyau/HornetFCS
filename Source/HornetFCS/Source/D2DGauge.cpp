@@ -84,7 +84,6 @@ void D2DGauge::Callback(GAUGEHDR *pgauge, int service_id)
     {
     case PANEL_SERVICE_PRE_DRAW:
     {
-        // Called each time the gauge is to be re-drawn each frame
         if (m_canvas)
         {
             if (pgauge->elements_list[0])
@@ -96,7 +95,6 @@ void D2DGauge::Callback(GAUGEHDR *pgauge, int service_id)
     }
     case PANEL_SERVICE_POST_INSTALL:
     {
-        // Called on init and on each gauge resize
         m_canvas = reinterpret_cast<ELEMENT_STATIC_IMAGE*>(pgauge->elements_list[0]);
         if (m_canvas->hdc || m_canvas->hdc != INVALID_HANDLE_VALUE)
         {

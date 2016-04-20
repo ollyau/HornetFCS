@@ -138,7 +138,7 @@ private:
     Gauge::NamedVar::Ptr m_spinSwitch;
     Gauge::NamedVar::Ptr m_atcSwitch;
     Gauge::NamedVar::Ptr m_takeoffTrim;
-	Gauge::NamedVar::Ptr m_fcsInitialized;
+    Gauge::NamedVar::Ptr m_fcsInitialized;
     Gauge::NamedVar::Ptr m_throttleCutoffLeft;
     Gauge::NamedVar::Ptr m_throttleCutoffRight;
 

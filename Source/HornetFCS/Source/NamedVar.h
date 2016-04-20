@@ -19,7 +19,7 @@ class NamedVar
 public:
     typedef std::shared_ptr<NamedVar> Ptr;
 
-    NamedVar(const char* varName, const double defaultValue = 0.0);
+    NamedVar(const char *varName, const double defaultValue = 0.0);
 
     double Get() const;
     std::pair<bool, double> Update();
@@ -31,7 +31,7 @@ private:
     int m_ID;
     bool m_set;
     double m_Value;
-    const char* m_VarName;
+    const char *m_VarName;
 };
 
 //-----------------------------------------------------------------------------

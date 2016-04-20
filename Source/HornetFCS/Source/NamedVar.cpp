@@ -13,7 +13,7 @@ namespace Gauge
 
 //-----------------------------------------------------------------------------
 
-NamedVar::NamedVar(const char* varName, const double defaultValue) :
+NamedVar::NamedVar(const char *varName, const double defaultValue) :
     m_VarName(varName),
     m_Value(defaultValue),
     m_set(false),
