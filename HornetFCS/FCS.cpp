@@ -356,8 +356,15 @@ std::pair<bool, long> FBW::SetRudder(long stickZ)
         return std::make_pair(false, 0L);
     case RudderState::Autopilot:
     case RudderState::PassThrough:
+    {
         m_sideslip->ResetError();
-        return std::make_pair(true, stickZ);
+        auto rudderVal = stickZ;
+        if (m_flightData && m_flightData->AngleOfAttack < 22.0)
+        {
+            rudderVal = static_cast<long>(stickZ / 2.0);
+        }
+        return std::make_pair(true, rudderVal);
+    }
     case RudderState::OnGround:
     {
         auto rudderVal = stickZ;
@@ -727,10 +734,15 @@ double FBW::GetCurrentRudder()
 {
     if (m_mode == Mode::Mechanical)
     {
-        return m_stickZ / 2.0;
+        return m_stickZ / 4.0;
     }
 
-    return m_sideslip->Calculate(m_flightData->SideslipAngle, 0.0, deltaTime) * 163.83;
+    auto val = m_sideslip->Calculate(m_flightData->SideslipAngle, 0.0, deltaTime) * 163.83;
+    if (m_flightData && m_flightData->AngleOfAttack < 22.0)
+    {
+        val = val / 2.0;
+    }
+    return val;
 }
 
 std::shared_ptr<Flaps> FBW::GetCurrentFlaps()
