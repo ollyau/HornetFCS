@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{44DD69F0-8931-4102-8DB4-7E136B7A00FE}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectName>HornetFCS</ProjectName>
+    <RootNamespace>HornetFCS</RootNamespace>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(SolutionDir)..\Root.props" />
+    <Import Project="$(ConfigDirectory)Configurations.props" />
+    <Import Project="$(ConfigDirectory)Cpp.props" />
+    <Import Condition="'$(GaugeImported)' != 'true'" Project="$(ExternalDirectory)Gauge\Build\Gauge.props" />
+    <Import Condition="'$(SimConnectImported)' != 'true'" Project="$(ExternalDirectory)SimConnect\Build\SimConnect.props" />
+    <Import Condition="'$(OptionalImported)' != 'true'" Project="$(ExternalDirectory)Optional\Build\Optional.props" />
+  </ImportGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Source\AircraftVar.h" />
+    <ClInclude Include="..\Source\D2DGauge.h" />
+    <ClInclude Include="..\Source\FCS.h" />
+    <ClInclude Include="..\Source\NamedVar.h" />
+    <ClInclude Include="..\Source\PIDController.h" />
+    <ClInclude Include="..\Source\SimConnectData.h" />
+    <ClInclude Include="..\Source\Utils.h" />
+    <ClInclude Include="..\Resources\GaugeRes.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Source\AircraftVar.cpp" />
+    <ClCompile Include="..\Source\D2DGauge.cpp" />
+    <ClCompile Include="..\Source\FCS.cpp" />
+    <ClCompile Include="..\Source\HornetFCS.cpp" />
+    <ClCompile Include="..\Source\NamedVar.cpp" />
+    <ClCompile Include="..\Source\PIDController.cpp" />
+    <ClCompile Include="..\Source\Utils.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\Resources\GaugeRes.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
