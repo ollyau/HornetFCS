@@ -567,7 +567,7 @@ std::pair<bool, double> FBW::SetMode()
                 setTrim = false;
             }
             m_mode = Mode::PoweredApproach;
-            return std::make_pair(setTrim, m_flightData->AngleOfAttack - 5.8);
+            return std::make_pair(setTrim, m_flightData->AngleOfAttack > 12.0 ? 6.2 : m_flightData->AngleOfAttack - 5.8);
         }
     }
     else
