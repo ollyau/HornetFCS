@@ -6,6 +6,7 @@
 
 #include "FCS.h"
 
+#include <algorithm>
 #include <cassert>
 #include <gauges.h>
 #include <sstream>
@@ -133,10 +134,10 @@ double TrailingEdgeFlaps(double mach, double aoa)
 
 double ElevatorAoA(long elevatorPos, double offset)
 {
-    // quintic fit {{-100,20},{0,5.8},{100,-3}}
-    // 5.8 - 0.115 x + 0.00027 x^2
+    // quintic fit {{-100,25},{0,5.8},{100,-10}}
+    // 5.8 - 0.175 x + 0.00017 x^2
     auto val = static_cast<double>(elevatorPos) / 163.83;
-    return 5.8 + offset - (0.115 * val) + (0.00027 * val * val);
+    return 5.8 + offset - ( 0.175 * val) + ( 0.00017 * val * val);
 }
 
 double ElevatorPitchRate(long elevatorPos, double offset = 0.0)
@@ -172,10 +173,10 @@ double HighAoA(long elevatorPos, double offset)
     return 22 + offset - (0.325 * val) + (0.00005 * val * val);
 }
 
-double PoweredApproach(double pitchRate, double aoa, double flapPosition, double pitchScalar, double aoaScalar)
-{
-    return (pitchRate * pitchScalar * (1.0 - flapPosition)) + (aoa * aoaScalar * flapPosition);
-}
+//double PoweredApproach(double pitchRate, double aoa, double flapPosition, double pitchScalar, double aoaScalar)
+//{
+//    return (pitchRate * pitchScalar * (1.0 - flapPosition)) + (aoa * aoaScalar * flapPosition);
+//}
 
 double UpAndAway(double pitchRate, double GForce, double aoa, double currentAoA, double airspeed, double GScalar, double pitchScalar, double aoaScalar)
 {
@@ -205,6 +206,15 @@ double UpAndAway(double pitchRate, double GForce, double aoa, double currentAoA,
     }
 }
 
+double PoweredApproach(double pitchRate, double GForce, double aoa, double currentAoA, double airspeed, double GScalar, double pitchScalar, double highaoaScalar, double aoaScalar, double pa_aoa, double flapPosition )
+{
+    if ( flapPosition < 1.0 )
+    {
+        return ( UpAndAway( pitchRate, GForce, aoa, currentAoA, airspeed, GScalar, pitchScalar, highaoaScalar ) * ( 1.0 - flapPosition ) ) + ( pa_aoa * aoaScalar * flapPosition );
+    }
+    return pa_aoa * aoaScalar ;
+}
+
 //-----------------------------------------------------------------------------
 
 FBW::FBW() :
@@ -224,6 +234,8 @@ FBW::FBW() :
     m_yawState(RudderState::PassThrough),
     m_mode(Mode::OnGround),
     m_atcMode(ATCMode::Disabled),
+    m_currentSimTime(0.0),
+    m_poweredApproachActive(0.0),
     m_stickX(0),
     m_stickY(0),
     m_stickZ(0),
@@ -506,8 +518,9 @@ void FBW::Update6Hz()
     }
 }
 
-std::pair<bool, bool> FBW::SetState(FlightData *fd)
+std::pair<bool, bool> FBW::SetState(double currentSimTime, FlightData *fd)
 {
+    m_currentSimTime = currentSimTime;
     m_flightData = *fd;
 
     if (fd->HydraulicPressure1 < 1500.0f && fd->HydraulicPressure2 < 1500.0f && fd->ApuPercent < 0.7f)
@@ -566,6 +579,7 @@ std::pair<bool, double> FBW::SetMode()
             {
                 setTrim = false;
             }
+            m_poweredApproachActive = m_currentSimTime;
             m_mode = Mode::PoweredApproach;
             return std::make_pair(setTrim, m_flightData->AngleOfAttack > 12.0 ? 6.2 : m_flightData->AngleOfAttack - 5.8);
         }
@@ -654,20 +668,35 @@ double FBW::GetCurrentElevator()
     {
     case Mode::PoweredApproach:
     {
+        auto val = ( m_currentSimTime - m_poweredApproachActive ) / 10.0;
+        auto scale = std::min( 1.0, std::max( 0.0, val ) );
+
         auto desiredValue = PoweredApproach(
             m_flightData->PitchRate,
+            m_flightData->GForce,
             m_flightData->AngleOfAttack,
-            m_flightData->TrailingFlapsLeft,
+            m_flightData->AngleOfAttack,
+            m_flightData->AirspeedTrue,
+            m_gScalar,
             m_pitchScalar,
-            m_aoaScalar
+            m_highAoAScalar,
+            m_aoaScalar,
+            m_flightData->AngleOfAttack,
+            scale
         );
 
         auto currentValue = PoweredApproach(
-            ElevatorPitchRate(m_stickY),
-            ElevatorAoA(m_stickY, m_flightData->ElevatorTrimPosition),
-            m_flightData->TrailingFlapsLeft,
+            ElevatorPitchRate( m_stickY ),
+            ElevatorGForce( m_stickY, m_flightData->TotalWeight > 44000.0f, 0.0 ),
+            HighAoA( m_stickY, 0.0 ),
+            m_flightData->AngleOfAttack,
+            m_flightData->AirspeedTrue,
+            m_gScalar,
             m_pitchScalar,
-            m_aoaScalar
+            m_highAoAScalar,
+            m_aoaScalar,
+            ElevatorAoA( m_stickY, m_flightData->ElevatorTrimPosition ),
+            scale
         );
 
         return m_cStar->CalculateCustom(currentValue, desiredValue, deltaTime, 1.0) * 163.83;
@@ -868,6 +897,9 @@ std::string FBW::ToString() const
     ss << "FCS Rudder State " << RudderStateLookup(m_yawState) << std::endl;
     ss << "FCS Mode " << ModeLookup(m_mode) << std::endl;
     ss << "ATC Mode " << ATCModeLookup(m_atcMode) << std::endl;
+
+    ss << "m_currentSimTime " << m_currentSimTime << std::endl;
+    ss << "m_poweredApproachActive " << m_poweredApproachActive << std::endl;
 
     ss << "Stick X " << m_stickX << std::endl;
     ss << "Stick Y " << m_stickY << std::endl;

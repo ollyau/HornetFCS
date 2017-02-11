@@ -317,13 +317,14 @@ void FlightDataRequest(SIMCONNECT_RECV_SIMOBJECT_DATA *pObjData)
     }
     if (g_fbw->deltaTime > 0.0)
     {
-        auto fbwState = g_fbw->SetState(flightData);
-        auto fbwTrim = g_fbw->SetMode();
+        auto fbwState = g_fbw->SetState(g_currentSimTime, flightData);
+        //auto fbwTrim = g_fbw->SetMode();
+        g_fbw->SetMode();
 
-        if (fbwTrim.first)
-        {
-            SimConnect_SetDataOnSimObject(g_simConnect, DEFINITION_ELEVATOR_TRIM, SIMCONNECT_OBJECT_ID_USER, 0, 0, sizeof(double), &fbwTrim.second);
-        }
+        //if (fbwTrim.first)
+        //{
+        //    SimConnect_SetDataOnSimObject(g_simConnect, DEFINITION_ELEVATOR_TRIM, SIMCONNECT_OBJECT_ID_USER, 0, 0, sizeof(double), &fbwTrim.second);
+        //}
 
         if (fbwState.first && g_fbw->GetCfgValid())
         {
