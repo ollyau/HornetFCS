@@ -215,3 +215,9 @@ $RECYCLE.BIN/
 
 # Mac crap
 .DS_Store
+*.pyc
+*.pdf
+*.aux
+*.out
+*.gz
+*.toc

@@ -1,0 +1,96 @@
+\documentclass[11pt]{article}
+
+\usepackage{hyperref}
+
+\title{%
+  FSX Blue Angels Hornet \\
+  \large Developer's Technical Reference}
+\author{Orion Lyau}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\pagebreak
+
+\tableofcontents
+
+\pagebreak
+
+\section{Introduction}
+
+The FSX Blue Angels Hornet is an add-on aircraft for Microsoft Flight Simulator X.  Its flight control system has been written as a custom gauge allowing for true fly-by-wire capability within Flight Simulator.  Different flight regimes will result in different flying characteristics depending on aircraft configuration and airspeed.  Features such as custom flap schedules and Automatic Throttle Control have also been implemented.
+
+\section{System Requirements}
+
+The FSX Blue Angels Hornet makes use of a DLL compiled using Visual C++ 2015 and is linked with the SimConnect libraries for Microsoft Flight Simulator X: Acceleration.  As such, the software listed below is required in order to run the FSX Blue Angels Hornet.
+
+\begin{itemize}
+\item Microsoft Visual C++ 2015 Redistributable (x86) \\ \url{http://www.microsoft.com/en-us/download/details.aspx?id=52982}
+\item Microsoft Flight Simulator X: Acceleration \\ \textit{or} \\ Microsoft Flight Simulator X: Steam Edition
+\end{itemize}
+
+\noindent Lockheed Martin Prepar3D has not been tested and may not necessarily be compatible.
+
+\pagebreak
+
+\pagebreak
+\section{Flight Control Modes}
+
+\subsection{Up and Away}
+
+\subsection{Powered Approach}
+
+\pagebreak
+\section{Automatic Throttle Control}
+
+Automatic Thottle Control
+
+\subsection Approach Mode
+
+\subsection Cruise Mode
+
+\begin{itemize}
+\item In addition to \verb!AUTO_THROTTLE_ARM! (Shift+R by default) you can use the ATC button on the hard to click side of the throttle
+\item Approach mode and cruise mode are completely independent of powered approach and up and away modes used for the flight controls (conditions below)
+\item Approach mode ATC is only engaged with the flap switch in HALF or FULL and the trailing edge flaps extended at least 27°
+\item Cruise mode ATC is only engaged with the flap switch in AUTO
+\item Approach mode ATC will attempt to hold on speed (8.1 degrees) AoA
+\item Cruise mode ATC will hold knots true airspeed
+\item Normal disengagement conditions (either mode)
+\begin{itemize}
+\item In addition to \verb!AUTO_THROTTLE_ARM! (Shift+R by default) you can use the ATC button on the hard to click side of the throttle
+\item Approach mode and cruise mode are completely independent of powered approach and up and away modes used for the flight controls (conditions below)
+\item Approach mode ATC is only engaged with the flap switch in HALF or FULL and the trailing edge flaps extended at least 27°
+\item Cruise mode ATC is only engaged with the flap switch in AUTO
+\item Approach mode ATC will attempt to hold on speed (8.1 degrees) AoA
+\item Cruise mode ATC will hold knots true airspeed
+\item Normal disengagement conditions (either mode)
+\begin{itemize}
+\item Pressing the ATC button or \verb!AUTO_THROTTLE_ARM! (Shift+R by default)
+\item Either throttle position differs from position at which ATC was engaged by more than 10\% on the throttle axis
+\end{itemize}
+\item Automatic disengagement conditions (approach mode):
+\begin{itemize}
+\item Flap AUTO up
+\item Trailing edge flap deflection less than 27°
+\item Weight on wheels
+\item FCS reversion to MECH or to DEL in any axis (i.e. spin recovery switch)
+\item Left and right throttle positions differ by more than 10\% of throttle axis
+\item Bank angle exceeds 70°
+\end{itemize}
+\item Automatic disengagement conditions (cruise mode):
+\begin{itemize}
+\item Flaps HALF or FULL
+\item FCS reversion to MECH or to DEL in any axis (i.e. spin recovery switch)
+\item Left and right throttle positions differ by more than 10\% of throttle axis
+\item Weight on wheels
+\end{itemize}
+\item When either mode is engaged, changing the flap switch between AUTO and HALF or FULL automatically disengages the system.
+\item If the system is disengaged for any reason, it remains disengaged until reengagement is initiated by the pilot.
+\end{itemize}
+
+\pagebreak
+\section{Flaps}
+\end{document}
