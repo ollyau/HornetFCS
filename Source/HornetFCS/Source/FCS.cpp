@@ -220,6 +220,7 @@ FBW::FBW() :
     m_desiredFlaps(std::make_shared<Flaps>()),
     m_cStar(PIDController::Factory::Make(0, 0, 0, -100, 100)),
     m_levelFlight(PIDController::Factory::Make(0, 0, 0, -100, 100)),
+    m_aoaAutoTrim( PIDController::Factory::Make( 0, 0, 0, -100, 100 ) ),
     m_roll(PIDController::Factory::Make(0, 0, 0, -100, 100)),
     m_sideslip(PIDController::Factory::Make(0, 0, 0, -100, 100)),
     m_throttleApproach(PIDController::Factory::Make(0, 0, 0, -100, 60)),
@@ -274,12 +275,15 @@ bool FBW::InitializeData(std::string const& cfgPath)
     auto aoa = Utils::ReadIni(cfgPath, "HornetFCS", "AoAScalar");
     auto highAoA = Utils::ReadIni(cfgPath, "HornetFCS", "HighAoAScalar");
 
+    auto szAoaAutoTrim = Utils::ReadIni( cfgPath, "HornetFCS", "aoa_auto_trim" );
+
     auto afterburnerThreshold = Utils::ReadIni(cfgPath, "TurbineEngineData", "afterburner_throttle_threshold");
 
     try
     {
         auto cStarVec = Utils::SplitAndParse(szCStar, std::wstring(L","));
         auto levelFlightVec = Utils::SplitAndParse(szLevelFlight, std::wstring(L","));
+        auto aoaAutoTrimVec = Utils::SplitAndParse( szLevelFlight, std::wstring( L"," ) );
         auto rollVec = Utils::SplitAndParse(szRoll, std::wstring(L","));
         auto sideslipVec = Utils::SplitAndParse(szSideslip, std::wstring(L","));
         auto throttleApproachVec = Utils::SplitAndParse(szThrottleApproach, std::wstring(L","));
@@ -288,10 +292,11 @@ bool FBW::InitializeData(std::string const& cfgPath)
         auto throttleLimit = !afterburnerThreshold.empty() ? std::stod(afterburnerThreshold) : 1.0;
         auto throttlePidMax = (200.0 * throttleLimit) - 100.0;
 
-        if (cStarVec.size() == 3 && levelFlightVec.size() == 3 && rollVec.size() == 3 && sideslipVec.size() == 3 && throttleApproachVec.size() == 3 && throttleCruiseVec.size() == 3)
+        if (cStarVec.size() == 3 && levelFlightVec.size() == 3 && rollVec.size() == 3 && sideslipVec.size() == 3 && throttleApproachVec.size() == 3 && throttleCruiseVec.size() == 3 && aoaAutoTrimVec.size() == 3 )
         {
             m_cStar = PIDController::Factory::Make(cStarVec[0], cStarVec[1], cStarVec[2], -100.0, 100.0);
             m_levelFlight = PIDController::Factory::Make(levelFlightVec[0], levelFlightVec[1], levelFlightVec[2], -100.0, 100.0);
+            m_aoaAutoTrim = PIDController::Factory::Make( aoaAutoTrimVec[ 0 ], aoaAutoTrimVec[ 1 ], aoaAutoTrimVec[ 2 ], -100.0, 100.0 );
             m_roll = PIDController::Factory::Make(rollVec[0], rollVec[1], rollVec[2], -100.0, 100.0);
             m_sideslip = PIDController::Factory::Make(sideslipVec[0], sideslipVec[1], sideslipVec[2], -100.0, 100.0);
             m_throttleApproach = PIDController::Factory::Make(throttleApproachVec[0], throttleApproachVec[1], throttleApproachVec[2], -100.0, throttlePidMax);
@@ -333,6 +338,7 @@ bool FBW::SetElevator(long stickY)
         else
         {
             m_levelFlight->ResetError();
+            m_aoaAutoTrim->ResetError();
         }
         return false;
     default:
@@ -438,6 +444,7 @@ void FBW::Update6Hz()
     {
         m_cStar->ResetError();
         m_levelFlight->ResetError();
+        m_aoaAutoTrim->ResetError();
         m_roll->ResetError();
         m_sideslip->ResetError();
         m_throttleApproach->ResetError();
@@ -669,6 +676,8 @@ double FBW::GetCurrentElevator()
         auto val = ( m_currentSimTime - m_poweredApproachActive ) / 10.0;
         auto scale = std::min( 1.0, std::max( 0.0, val ) );
 
+        auto offsetVal = ( m_stickY == 0 && abs( m_flightData->PitchRate ) < 1.0 ) ? m_aoaAutoTrim->Calculate( m_flightData->AngleOfAttack, 5.8 + m_flightData->ElevatorTrimPosition, deltaTime ) : m_flightData->ElevatorTrimPosition;
+
         auto desiredValue = PoweredApproach(
             m_flightData->PitchRate,
             m_flightData->GForce,
@@ -693,7 +702,7 @@ double FBW::GetCurrentElevator()
             m_pitchScalar,
             m_highAoAScalar,
             m_aoaScalar,
-            ElevatorAoA( m_stickY, m_flightData->ElevatorTrimPosition ),
+            ElevatorAoA( m_stickY, offsetVal ),
             scale
         );
 
@@ -886,6 +895,7 @@ std::string FBW::ToString() const
     std::ostringstream ss;
     ss << "CStar " << m_cStar->ToString() << std::endl;
     ss << "Level Flight " << m_levelFlight->ToString() << std::endl;
+    ss << "AoA Auto Trim " << m_aoaAutoTrim->ToString() << std::endl;
     ss << "Rudder " << m_sideslip->ToString() << std::endl;
     ss << "Aileron " << m_roll->ToString() << std::endl;
     ss << "Throttle Approach " << m_throttleApproach->ToString() << std::endl;
