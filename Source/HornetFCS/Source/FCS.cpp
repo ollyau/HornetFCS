@@ -142,18 +142,16 @@ double ElevatorAoA(long elevatorPos, double offset)
 
 double ElevatorPitchRate(long elevatorPos, double offset = 0.0)
 {
-    // quintic fit {{-100,25},{0,0},{100,-22.5}}
-    // - 0.2375 x + 0.000125 x^2
+    // '-1.1875e-05 x^3 + 0.000125 x^2 + -0.11875 x^1 + -3.07674029821e-15 x^0'
     auto val = static_cast<double>(elevatorPos) / 163.83;
-    return offset - (0.2375 * val) + (0.000125 * val * val);
+    return offset - (0.11875 * val) + (0.000125 * val * val) - ( 1.1875e-5 * val * val * val );
 }
 
 double ElevatorGForce(long elevatorPos, bool limitG, double offset)
 {
-    // quintic fit {{-100,10},{0,1},{100,-5}}
-    // 1 - 0.075 x + 0.00015 x^2
+    // '-3.75e-06 x^3 + 0.00015 x^2 + -0.0375 x^1 + 1.0 x^0'
     auto val = static_cast<double>(elevatorPos) / 163.83;
-    auto result = 1.0 + offset - (0.075 * val) + (0.00015 * val * val);
+    auto result = 1.0 + offset - (0.0375 * val) + (0.00015 * val * val) - ( 3.75e-6 * val * val * val );
     return (limitG && result > 5.5) ? 5.5 : result;
 }
 
