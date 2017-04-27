@@ -283,7 +283,7 @@ bool FBW::InitializeData(std::string const& cfgPath)
     {
         auto cStarVec = Utils::SplitAndParse(szCStar, std::wstring(L","));
         auto levelFlightVec = Utils::SplitAndParse(szLevelFlight, std::wstring(L","));
-        auto aoaAutoTrimVec = Utils::SplitAndParse( szLevelFlight, std::wstring( L"," ) );
+        auto aoaAutoTrimVec = Utils::SplitAndParse( szAoaAutoTrim, std::wstring( L"," ) );
         auto rollVec = Utils::SplitAndParse(szRoll, std::wstring(L","));
         auto sideslipVec = Utils::SplitAndParse(szSideslip, std::wstring(L","));
         auto throttleApproachVec = Utils::SplitAndParse(szThrottleApproach, std::wstring(L","));
