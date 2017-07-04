@@ -87,7 +87,7 @@ char* SimConnectExceptionLookup(unsigned long i)
 
 void DisplayText(SIMCONNECT_TEXT_TYPE textType, float durationSeconds, std::string const& text)
 {
-    SimConnect_Text(g_simConnect, textType, durationSeconds, EVENT_DISPLAY_TEXT, text.size() + 1, (void*)text.c_str());
+    SimConnect_Text(g_simConnect, textType, durationSeconds, EVENT_DISPLAY_TEXT, static_cast<unsigned long>(text.size() + 1), (void*)text.c_str());
 }
 
 //-----------------------------------------------------------------------------
@@ -114,6 +114,10 @@ void Open(SIMCONNECT_RECV_OPEN *data)
             {
                 g_getSimTime = (GetElapsedSimTimeSec)GetProcAddress(simschedulerDll, "?GetElapsedSimTimeSec@@YGNXZ");
             }
+			else if (data->dwApplicationVersionMajor == 4UL)
+			{
+				g_getSimTime = (GetElapsedSimTimeSec)GetProcAddress(simschedulerDll, "?GetElapsedSimTimeSec@@YANXZ");
+			}
         }
     }
 
@@ -484,13 +488,13 @@ void CALLBACK FCS_DispatchProcDLL(SIMCONNECT_RECV *pData, DWORD cbData, void *pC
 
 #ifdef DATA_GAUGE_ENABLED
 template <class T>
-void __stdcall GaugeCallback(GAUGEHDR *pgauge, int service_id, unsigned int extra_data)
+void __stdcall GaugeCallback(GAUGEHDR *pgauge, int service_id, UINT_PTR extra_data)
 {
     switch (service_id)
     {
     case PANEL_SERVICE_CONNECT_TO_WINDOW:
         assert(pgauge->user_data == 0U);
-        pgauge->user_data = reinterpret_cast<unsigned int>(new T(FCS::g_fbw));
+        pgauge->user_data = reinterpret_cast<UINT_PTR>(new T(FCS::g_fbw));
         reinterpret_cast<T*>(pgauge->user_data)->SetCanvas(reinterpret_cast<PELEMENT_STATIC_IMAGE>(pgauge->elements_list[0]));
         break;
     case PANEL_SERVICE_DISCONNECT:

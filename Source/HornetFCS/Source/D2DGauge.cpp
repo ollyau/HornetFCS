@@ -166,7 +166,7 @@ unsigned int __stdcall D2DGauge::Draw(void *args)
                     gau->m_d2dTarget->Clear();
 
                     auto text = Utils::s2ws(fcs->ToString());
-                    gau->m_d2dTarget->DrawTextW(text.c_str(), text.size(), textFormatSegoe, rectMain, solidBrushWhite);
+                    gau->m_d2dTarget->DrawTextW(text.c_str(), static_cast<uint32_t>(text.size()), textFormatSegoe, rectMain, solidBrushWhite);
 
                     gau->m_d2dTarget->EndDraw();
                     SET_OFF_SCREEN(gau->m_canvas);

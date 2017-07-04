@@ -9,15 +9,19 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>
-        $(ExternalDirectory)SimConnect\Inc;
+        $(ExternalDirectory)SimConnect\Inc\$(Platform);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(ProjectName)' != 'SimConnect'">
     <Link>
-      <AdditionalDependencies>
-        $(ExternalDirectory)SimConnect\Lib\SimConnect.lib;
+      <AdditionalDependencies Condition="'$(Platform)' == 'Win32'">
+        $(ExternalDirectory)SimConnect\Lib\$(Platform)\SimConnect.lib;
+        %(AdditionalDependencies)
+      </AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(Platform)' == 'x64'">
+        $(ExternalDirectory)SimConnect\Lib\$(Platform)\$(Configuration)\SimConnect.lib;
         %(AdditionalDependencies)
       </AdditionalDependencies>
     </Link>

@@ -39,6 +39,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)' != 'Debug'">NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(ConfigurationType)' == 'StaticLibrary'">_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 
+      <PreprocessorDefinitions Condition="'$(Platform)' == 'x64'">WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Platform)' == 'Win32'">WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 
       <WarningLevel>Level4</WarningLevel>
@@ -62,6 +63,9 @@
 
       <!-- Disable 'warning C4005: 'XXX': macro redefinition' warning (C4005) -->
       <DisableSpecificWarnings>4005;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+
+      <!-- Disable 'alignment of a member was sensitive to packing' warning (C4121) -->
+      <DisableSpecificWarnings>4121;%(DisableSpecificWarnings)</DisableSpecificWarnings>
 
       <SDLCheck>true</SDLCheck>
       <TreatWarningAsError>true</TreatWarningAsError>

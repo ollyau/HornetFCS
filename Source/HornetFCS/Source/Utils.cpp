@@ -20,10 +20,10 @@ std::string compile_time_str()
     int month, day, year, hour, minute, second;
     struct tm t = { 0 };
     static const char month_names[] = "JanFebMarAprMayJunJulAugSepOctNovDec";
-    sscanf_s(__DATE__, "%s %d %d", &s_month, sizeof(s_month), &day, &year);
+    sscanf_s(__DATE__, "%s %d %d", &s_month, static_cast<uint32_t>(sizeof(s_month)), &day, &year);
     sscanf_s(__TIME__, "%d:%d:%d", &hour, &minute, &second);
 
-    month = (strstr(month_names, s_month) - month_names) / 3;
+    month = static_cast<int>((strstr(month_names, s_month) - month_names) / 3);
 
     t.tm_year = year - 1900;
     t.tm_mon = month;
