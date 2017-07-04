@@ -1,0 +1,179 @@
+\documentclass[11pt]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{indentfirst}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{fancyhdr}
+\usepackage{siunitx}
+\usepackage{titlesec}
+
+% adjust fancyhdr
+\pagestyle{fancy}
+\fancyhead{} % clear all header fields
+\renewcommand{\headrulewidth}{0pt} % no line in header area
+\setlength{\headheight}{13.6pt}
+\fancyfoot{} % clear all footer fields
+\fancyhead[R]{\thepage}
+\fancyhead[C]{\hyperref[ch:fsxba]{FSX Blue Angels Hornet}}
+\fancyfoot[C]{\hyperref[sec:note]{FOR SIMULATOR USE ONLY}}
+
+% adjust titles (requires titlesec)
+
+\titleformat{\chapter}[display]{\normalfont\sffamily\Large\bfseries\centering}{CHAPTER~\thechapter}{20pt}{\huge}[]
+\titleformat{\section}[block]{\normalfont\sffamily\bfseries}{\thesection}{6pt}{\uppercase}[]
+\titleformat{\subsection}[runin]{\normalfont\sffamily\bfseries}{\thesubsection}{6pt}{}[.]
+\titleformat{\subsubsection}[runin]{\normalfont\sffamily\bfseries}{\thesubsubsection}{6pt}{}[.]
+\titleformat{\paragraph}[runin]{\normalfont\sffamily\bfseries}{\theparagraph}{6pt}{}[.]
+
+\titlespacing{\chapter}{0pt}{0pt}{20pt}
+
+% adjusts level so that paragraphs get numbered too
+\setcounter{secnumdepth}{4}
+
+% title page
+
+\title{%
+  FSX Blue Angels Hornet \\~\\
+  \large Developer's Technical Reference}
+\author{Orion Lyau}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\chapter{The FSX Blue Angels Hornet}
+\label{ch:fsxba}
+
+\section{Introduction}
+
+The FSX Blue Angels Hornet is a freeware add-on for Microsoft Flight Simulator X with many new features and improvements over the F/A-18 Hornet included with Flight Simulator X: Acceleration.  These features include a new 3D model (internal and external), a multitude of textures, a custom sound pack, and new more accurate flight dynamics.  This document is intended to describe the functionality of the custom fly-by-wire flight control system in order to help acquaint users with new and potentially unfamiliar features.
+
+\section{System Requirements}
+
+The FSX Blue Angels Hornet makes use of a DLL compiled using Visual C++ 2015 and is linked with the SimConnect libraries for Microsoft Flight Simulator X: Acceleration.  As such, the software listed below is required in order to use the FSX Blue Angels Hornet:
+
+\begin{itemize}
+\item Microsoft Visual C++ 2015 Redistributable (x86) \\ \url{http://www.microsoft.com/en-us/download/details.aspx?id=52982}
+\item Microsoft Flight Simulator X: Acceleration \textit{or} Microsoft Flight Simulator X: Steam Edition
+\end{itemize}
+
+Lockheed Martin Prepar3D has not been tested and may not necessarily be compatible.
+
+\section{Important Note}
+\label{sec:note}
+
+This documentation only describes the operation and functionality of the FSX Blue Angels Hornet add-on for Microsoft Flight Simulator X and is not in any way representative of the real world Boeing F/A-18 Hornet.  To provide context, the author of this document (and developer of the Flight Simulator gauge) has no knowledge or experience in signal processing, control theory, aircraft dynamics, and other topics pertinent to real flight control systems and aerospace engineering.  This document is not meant to be a discussion of the aforementioned topics or other similar topics; it is meant only to describe the operation of the flight simulator add-on.  The flight control system used in the FSX Blue Angels Hornet is vastly simplified and is a only crude approximation of what can be found in real aircraft.  As such the FSX Blue Angels Hornet is for personal entertainment use only and should not be used in applications where performance or accuracy of simulated aircraft is critical or important in any way, shape, or form.  This documentation and the Flight Simulator gauge are provided as is without warranty of any kind.
+
+\chapter{The Flight Control System}
+\thispagestyle{fancy}
+
+\section{Control Laws}
+
+\subsection{Up and Away}
+
+The up and away mode will be enabled either when the aircraft is at or above 240 KTAS or when the flaps are set to up/auto.  In the up and away mode the aircraft will attempt to hold 1 G, zero pitch rate flight when the stick input is neutral.  In this mode trim will adjust the desired G-force by shifting the curve in \autoref{fig:ua-gforce} up or down along the y-axis.  Below 310 KTAS pitch rate increasingly becomes a factor in determining aircraft responsiveness (\autoref{fig:ua-pitch}).
+
+% todo: fix size of plots
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{0.4965\textwidth}
+        \includegraphics[page=1]{G:/Simulation/Development/Gauges/HornetFCS/Resources/Python/plot.pdf}
+        \caption{G-force command}
+        \label{fig:ua-gforce}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[H]{0.4965\textwidth}
+        \includegraphics[page=2]{G:/Simulation/Development/Gauges/HornetFCS/Resources/Python/plot.pdf}
+        \caption{pitch rate command}
+        \label{fig:ua-pitch}
+    \end{subfigure}
+    \caption{Up and away control law as a function of stick input (y-axis).}
+\end{figure}
+
+\subsubsection{High Angle of Attack}
+
+At high angles of attack (above \SI{22}{\degree}) while in the up and away mode, the aircraft will transition from G-force command to angle of attack command (\autoref{fig:ua-aoa}).  Additionally, above \SI{22}{\degree} angle of attack rudder effectiveness will increase by a factor of two.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=4]{G:/Simulation/Development/Gauges/HornetFCS/Resources/Python/plot.pdf}
+    \caption{Commanded angle of attack as a function of stick input (y-axis).}
+    \label{fig:ua-aoa}
+\end{figure}
+
+\subsection{Powered Approach}
+
+The powered approach mode will be enabled when the aircraft is below 240 KTAS and flaps are either half or full.  In powered approach mode the aircraft will attempt to hold a particular angle of attack when the stick input is neutral.  When entering powered approach mode, the aircraft will automatically set the current angle of attack as the desired angle of attack by shifting the curve in \autoref{fig:pa-aoa} up or down along the y-axis.  If the angle of attack while entering powered approach mode is greater than \SI{12}{\degree}, the automatically selected angle of attack will be limited to \SI{12}{\degree}.  By using the trim, pilots can modify the selected angle of attack.  In powered approach mode it is important to remember to use pitch to control airspeed and power to control altitude.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=3]{G:/Simulation/Development/Gauges/HornetFCS/Resources/Python/plot.pdf}
+    \caption{Commanded angle of attack as a function of stick input (y-axis).}
+    \label{fig:pa-aoa}
+\end{figure}
+
+\subsection{Mechanical}
+
+The mechanical mode is enabled when hydraulic pressure on both engines drop below 1500 psi and when the APU RPM is below 70\%.  When the mechanical mode is enabled, automatic throttle control is unavailable and the flight computer will not process pilot input; instead the control surfaces will move proportionally to pilot input.  In the mechanical mode, aileron deflection is limited to 50\%, and rudder deflection is limited to 25\%.  Additionally, elevator deflection will be limited to 50\% with flaps up/auto, or 66\% with flaps in half or full.
+
+\subsection{Direct Electrical Link}
+
+The direct electrical link mode is enabled when the aircraft is on the ground, airspeed is below 50 KTAS, or when spin recovery mode is enabled.  In the direct electrical link mode, automatic throttle control is unavailable and the flight computer will not process pilot input; control surfaces will move directly in accordance with pilot input.  The pilot should have full and correct control surface authority in this mode.
+
+\section{Automatic Throttle Control}
+
+The automatic throttle control system has two modes: approach and cruise.  Approach mode maintains angle of attack while cruise mode maintains true airspeed; both modes will automatically adjust the throttle between idle and full military power.  Approach mode and cruise mode are independent of the powered approach and up and away control laws.  Automatic throttle control can be engaged by pressing the button on the far left side of the throttle in the virtual cockpit, or by pressing Shift+R (or whatever key or hardware button is bound to the \texttt{AUTO\_THROTTLE\_ARM} event). Transition between approach mode and cruise mode is not possible; the pilot must disengage and then reengage automatic throttle control manually.  If automatic throttle control fails to engage or disengages for any reason, the text ``ATC'' will flash on the HUD for approximately 10 seconds. Automatic throttle control will automatically disengage if the throttle is moved more than 10\% along its axis or if the flap selection changes between up/auto and half or full.  If there are multiple throttle axes, automatic throttle control will also disengage if the positions of throttles 0 and 1 vary more than 10\% of the axis from each other.  If automatic throttle control is disengaged for any reason, it will remain disengaged until engaged manually by the pilot.
+
+\subsection{Approach Mode}
+
+Approach mode automatic throttle control is only engaged when flaps are set to half or full and the trailing edge flaps are extended at least \SI{27}{\degree}.  Approach mode will attempt to maintain on speed (\SI{8.1}{\degree}) angle of attack.  It is important to note that using approach mode automatic throttle control requires practice, as the rule of using pitch for airspeed and power for altitude is no longer applicable.  Automatic disengagement of automatic throttle control while in approach mode will occur for any of the following reasons:
+
+\begin{itemize}
+\item Flap AUTO up
+\item Trailing edge flap deflection less than \SI{27}{\degree}
+\item Weight on wheels
+\item FCS reversion to MECH or to DEL in any axis
+\item Selection of spin recovery mode
+\item Left and right throttle positions differ by more than 10\% of axis
+\item Bank angle exceeds \SI{70}{\degree}
+\end{itemize}
+
+\subsection{Cruise Mode}
+Cruise mode automatic throttle control is only engaged when flaps are set to up/auto.  Cruise mode will attempt to maintain the true airspeed the aircraft is travelling at when automatic throttle control is engaged.  Automatic disengagement of automatic throttle control while in cruise mode will occur for any of the following reasons:
+
+\begin{itemize}
+\item Flaps HALF or FULL
+\item FCS reversion to MECH or to DEL in any axis
+\item Selection of spin recovery mode
+\item Left and right throttle positions differ by more than 10\% of axis
+\item Weight on wheels
+\end{itemize}
+
+\section{Flaps}
+
+\subsection{Up/Auto}
+
+When flaps selection is up/auto, the positions of both leading edge and trailing edge flaps are determined as a function of angle of attack.  On the ground flaps up/auto will result in both leading edge and trailing edge flaps in the fully raised position.  The in-flight trailing edge flap deflection is described in \autoref{fig:tef-aoa}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=6]{G:/Simulation/Development/Gauges/HornetFCS/Resources/Python/plot.pdf}
+    \caption{Trailing edge flap deflection as a function of angle of attack and mach.}
+    \label{fig:tef-aoa}
+\end{figure}
+
+\subsection{Half}
+
+When flaps selection is half and the aircraft is below 250 KTAS, the position of the trailing edge flaps is determined as a function of airspeed and is limited to \SI{30}{\degree} of deflection.  At 250 KTAS and above, trailing edge flaps are set as a function of angle of attack (\autoref{fig:tef-aoa}).  Leading edge flaps remain set as a function of angle of attack.  On the ground flaps half will result in the leading edge flaps extended to \SI{12}{\degree} and the trailing edge flaps extended to \SI{30}{\degree}.
+
+\subsection{Full}
+
+When flaps selection is full and the aircraft is below 250 KTAS, the position of the trailing edge flaps is determined as a function of airspeed and can extend to \SI{45}{\degree}, the fully extended position.  At 250 KTAS and above, trailing edge flaps are set as a function of angle of attack (\autoref{fig:tef-aoa}).  Leading edge flaps remain set as a function of angle of attack.  On the ground flaps full will result in the leading edge flaps extended to \SI{12}{\degree} and the trailing edge flaps extended to \SI{45}{\degree}.
+
+\end{document}
