@@ -81,7 +81,7 @@ public:
     void DisableAutoThrottle();
     void ToggleAutoThrottle();
 
-    std::pair<bool, bool> SetState(FlightData *fd);
+    std::pair<bool, bool> SetState(double currentSimTime, FlightData *fd);
     std::pair<bool, double> SetMode();
     std::pair<bool, double> SetAutoThrottle();
     void Update6Hz();
@@ -107,6 +107,7 @@ private:
 
     PIDController::IController::Ptr m_cStar;
     PIDController::IController::Ptr m_levelFlight;
+    PIDController::IController::Ptr m_aoaAutoTrim;
     PIDController::IController::Ptr m_roll;
     PIDController::IController::Ptr m_sideslip;
     PIDController::IController::Ptr m_throttleApproach;
@@ -115,6 +116,8 @@ private:
     State m_mainState;
     RudderState m_yawState;
     Mode m_mode;
+    double m_currentSimTime;
+    double m_poweredApproachActive;
 
     ATCMode m_atcMode;
     double m_atcSpeed;

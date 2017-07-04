@@ -6,6 +6,7 @@
 
 #include "FCS.h"
 
+#include <algorithm>
 #include <cassert>
 #include <gauges.h>
 #include <sstream>
@@ -133,26 +134,24 @@ double TrailingEdgeFlaps(double mach, double aoa)
 
 double ElevatorAoA(long elevatorPos, double offset)
 {
-    // quintic fit {{-100,20},{0,5.8},{100,-3}}
-    // 5.8 - 0.115 x + 0.00027 x^2
+    // quintic fit {{-100,25},{0,5.8},{100,-10}}
+    // 5.8 - 0.175 x + 0.00017 x^2
     auto val = static_cast<double>(elevatorPos) / 163.83;
-    return 5.8 + offset - (0.115 * val) + (0.00027 * val * val);
+    return 5.8 + offset - ( 0.175 * val) + ( 0.00017 * val * val);
 }
 
 double ElevatorPitchRate(long elevatorPos, double offset = 0.0)
 {
-    // quintic fit {{-100,25},{0,0},{100,-22.5}}
-    // - 0.2375 x + 0.000125 x^2
+    // '-1.1875e-05 x^3 + 0.000125 x^2 + -0.11875 x^1 + -3.07674029821e-15 x^0'
     auto val = static_cast<double>(elevatorPos) / 163.83;
-    return offset - (0.2375 * val) + (0.000125 * val * val);
+    return offset - (0.11875 * val) + (0.000125 * val * val) - ( 1.1875e-5 * val * val * val );
 }
 
 double ElevatorGForce(long elevatorPos, bool limitG, double offset)
 {
-    // quintic fit {{-100,10},{0,1},{100,-5}}
-    // 1 - 0.075 x + 0.00015 x^2
+    // '-3.75e-06 x^3 + 0.00015 x^2 + -0.0375 x^1 + 1.0 x^0'
     auto val = static_cast<double>(elevatorPos) / 163.83;
-    auto result = 1.0 + offset - (0.075 * val) + (0.00015 * val * val);
+    auto result = 1.0 + offset - (0.0375 * val) + (0.00015 * val * val) - ( 3.75e-6 * val * val * val );
     return (limitG && result > 5.5) ? 5.5 : result;
 }
 
@@ -172,10 +171,10 @@ double HighAoA(long elevatorPos, double offset)
     return 22 + offset - (0.325 * val) + (0.00005 * val * val);
 }
 
-double PoweredApproach(double pitchRate, double aoa, double flapPosition, double pitchScalar, double aoaScalar)
-{
-    return (pitchRate * pitchScalar * (1.0 - flapPosition)) + (aoa * aoaScalar * flapPosition);
-}
+//double PoweredApproach(double pitchRate, double aoa, double flapPosition, double pitchScalar, double aoaScalar)
+//{
+//    return (pitchRate * pitchScalar * (1.0 - flapPosition)) + (aoa * aoaScalar * flapPosition);
+//}
 
 double UpAndAway(double pitchRate, double GForce, double aoa, double currentAoA, double airspeed, double GScalar, double pitchScalar, double aoaScalar)
 {
@@ -205,6 +204,15 @@ double UpAndAway(double pitchRate, double GForce, double aoa, double currentAoA,
     }
 }
 
+double PoweredApproach(double pitchRate, double GForce, double aoa, double currentAoA, double airspeed, double GScalar, double pitchScalar, double highaoaScalar, double aoaScalar, double pa_aoa, double flapPosition )
+{
+    if ( flapPosition < 1.0 )
+    {
+        return ( UpAndAway( pitchRate, GForce, aoa, currentAoA, airspeed, GScalar, pitchScalar, highaoaScalar ) * ( 1.0 - flapPosition ) ) + ( pa_aoa * aoaScalar * flapPosition );
+    }
+    return pa_aoa * aoaScalar ;
+}
+
 //-----------------------------------------------------------------------------
 
 FBW::FBW() :
@@ -212,6 +220,7 @@ FBW::FBW() :
     m_desiredFlaps(std::make_shared<Flaps>()),
     m_cStar(PIDController::Factory::Make(0, 0, 0, -100, 100)),
     m_levelFlight(PIDController::Factory::Make(0, 0, 0, -100, 100)),
+    m_aoaAutoTrim( PIDController::Factory::Make( 0, 0, 0, -100, 100 ) ),
     m_roll(PIDController::Factory::Make(0, 0, 0, -100, 100)),
     m_sideslip(PIDController::Factory::Make(0, 0, 0, -100, 100)),
     m_throttleApproach(PIDController::Factory::Make(0, 0, 0, -100, 60)),
@@ -224,6 +233,8 @@ FBW::FBW() :
     m_yawState(RudderState::PassThrough),
     m_mode(Mode::OnGround),
     m_atcMode(ATCMode::Disabled),
+    m_currentSimTime(0.0),
+    m_poweredApproachActive(0.0),
     m_stickX(0),
     m_stickY(0),
     m_stickZ(0),
@@ -264,12 +275,15 @@ bool FBW::InitializeData(std::string const& cfgPath)
     auto aoa = Utils::ReadIni(cfgPath, "HornetFCS", "AoAScalar");
     auto highAoA = Utils::ReadIni(cfgPath, "HornetFCS", "HighAoAScalar");
 
+    auto szAoaAutoTrim = Utils::ReadIni( cfgPath, "HornetFCS", "aoa_auto_trim" );
+
     auto afterburnerThreshold = Utils::ReadIni(cfgPath, "TurbineEngineData", "afterburner_throttle_threshold");
 
     try
     {
         auto cStarVec = Utils::SplitAndParse(szCStar, std::wstring(L","));
         auto levelFlightVec = Utils::SplitAndParse(szLevelFlight, std::wstring(L","));
+        auto aoaAutoTrimVec = Utils::SplitAndParse( szAoaAutoTrim, std::wstring( L"," ) );
         auto rollVec = Utils::SplitAndParse(szRoll, std::wstring(L","));
         auto sideslipVec = Utils::SplitAndParse(szSideslip, std::wstring(L","));
         auto throttleApproachVec = Utils::SplitAndParse(szThrottleApproach, std::wstring(L","));
@@ -278,10 +292,11 @@ bool FBW::InitializeData(std::string const& cfgPath)
         auto throttleLimit = !afterburnerThreshold.empty() ? std::stod(afterburnerThreshold) : 1.0;
         auto throttlePidMax = (200.0 * throttleLimit) - 100.0;
 
-        if (cStarVec.size() == 3 && levelFlightVec.size() == 3 && rollVec.size() == 3 && sideslipVec.size() == 3 && throttleApproachVec.size() == 3 && throttleCruiseVec.size() == 3)
+        if (cStarVec.size() == 3 && levelFlightVec.size() == 3 && rollVec.size() == 3 && sideslipVec.size() == 3 && throttleApproachVec.size() == 3 && throttleCruiseVec.size() == 3 && aoaAutoTrimVec.size() == 3 )
         {
             m_cStar = PIDController::Factory::Make(cStarVec[0], cStarVec[1], cStarVec[2], -100.0, 100.0);
             m_levelFlight = PIDController::Factory::Make(levelFlightVec[0], levelFlightVec[1], levelFlightVec[2], -100.0, 100.0);
+            m_aoaAutoTrim = PIDController::Factory::Make( aoaAutoTrimVec[ 0 ], aoaAutoTrimVec[ 1 ], aoaAutoTrimVec[ 2 ], -100.0, 100.0 );
             m_roll = PIDController::Factory::Make(rollVec[0], rollVec[1], rollVec[2], -100.0, 100.0);
             m_sideslip = PIDController::Factory::Make(sideslipVec[0], sideslipVec[1], sideslipVec[2], -100.0, 100.0);
             m_throttleApproach = PIDController::Factory::Make(throttleApproachVec[0], throttleApproachVec[1], throttleApproachVec[2], -100.0, throttlePidMax);
@@ -323,6 +338,7 @@ bool FBW::SetElevator(long stickY)
         else
         {
             m_levelFlight->ResetError();
+            m_aoaAutoTrim->ResetError();
         }
         return false;
     default:
@@ -428,6 +444,7 @@ void FBW::Update6Hz()
     {
         m_cStar->ResetError();
         m_levelFlight->ResetError();
+        m_aoaAutoTrim->ResetError();
         m_roll->ResetError();
         m_sideslip->ResetError();
         m_throttleApproach->ResetError();
@@ -506,8 +523,9 @@ void FBW::Update6Hz()
     }
 }
 
-std::pair<bool, bool> FBW::SetState(FlightData *fd)
+std::pair<bool, bool> FBW::SetState(double currentSimTime, FlightData *fd)
 {
+    m_currentSimTime = currentSimTime;
     m_flightData = *fd;
 
     if (fd->HydraulicPressure1 < 1500.0f && fd->HydraulicPressure2 < 1500.0f && fd->ApuPercent < 0.7f)
@@ -566,6 +584,7 @@ std::pair<bool, double> FBW::SetMode()
             {
                 setTrim = false;
             }
+            m_poweredApproachActive = m_currentSimTime;
             m_mode = Mode::PoweredApproach;
             return std::make_pair(setTrim, m_flightData->AngleOfAttack > 12.0 ? 6.2 : m_flightData->AngleOfAttack - 5.8);
         }
@@ -654,20 +673,37 @@ double FBW::GetCurrentElevator()
     {
     case Mode::PoweredApproach:
     {
+        auto val = ( m_currentSimTime - m_poweredApproachActive ) / 10.0;
+        auto scale = std::min( 1.0, std::max( 0.0, val ) );
+
+        auto offsetVal = ( m_stickY == 0 && abs( m_flightData->PitchRate ) < 1.0 ) ? m_aoaAutoTrim->Calculate( m_flightData->AngleOfAttack, 5.8 + m_flightData->ElevatorTrimPosition, deltaTime ) : m_flightData->ElevatorTrimPosition;
+
         auto desiredValue = PoweredApproach(
             m_flightData->PitchRate,
+            m_flightData->GForce,
             m_flightData->AngleOfAttack,
-            m_flightData->TrailingFlapsLeft,
+            m_flightData->AngleOfAttack,
+            m_flightData->AirspeedTrue,
+            m_gScalar,
             m_pitchScalar,
-            m_aoaScalar
+            m_highAoAScalar,
+            m_aoaScalar,
+            m_flightData->AngleOfAttack,
+            scale
         );
 
         auto currentValue = PoweredApproach(
-            ElevatorPitchRate(m_stickY),
-            ElevatorAoA(m_stickY, m_flightData->ElevatorTrimPosition),
-            m_flightData->TrailingFlapsLeft,
+            ElevatorPitchRate( m_stickY ),
+            ElevatorGForce( m_stickY, m_flightData->TotalWeight > 44000.0f, 0.0 ),
+            HighAoA( m_stickY, 0.0 ),
+            m_flightData->AngleOfAttack,
+            m_flightData->AirspeedTrue,
+            m_gScalar,
             m_pitchScalar,
-            m_aoaScalar
+            m_highAoAScalar,
+            m_aoaScalar,
+            ElevatorAoA( m_stickY, offsetVal ),
+            scale
         );
 
         return m_cStar->CalculateCustom(currentValue, desiredValue, deltaTime, 1.0) * 163.83;
@@ -859,6 +895,7 @@ std::string FBW::ToString() const
     std::ostringstream ss;
     ss << "CStar " << m_cStar->ToString() << std::endl;
     ss << "Level Flight " << m_levelFlight->ToString() << std::endl;
+    ss << "AoA Auto Trim " << m_aoaAutoTrim->ToString() << std::endl;
     ss << "Rudder " << m_sideslip->ToString() << std::endl;
     ss << "Aileron " << m_roll->ToString() << std::endl;
     ss << "Throttle Approach " << m_throttleApproach->ToString() << std::endl;
@@ -868,6 +905,9 @@ std::string FBW::ToString() const
     ss << "FCS Rudder State " << RudderStateLookup(m_yawState) << std::endl;
     ss << "FCS Mode " << ModeLookup(m_mode) << std::endl;
     ss << "ATC Mode " << ATCModeLookup(m_atcMode) << std::endl;
+
+    ss << "m_currentSimTime " << m_currentSimTime << std::endl;
+    ss << "m_poweredApproachActive " << m_poweredApproachActive << std::endl;
 
     ss << "Stick X " << m_stickX << std::endl;
     ss << "Stick Y " << m_stickY << std::endl;
