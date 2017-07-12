@@ -107,7 +107,6 @@ private:
 
     PIDController::IController::Ptr m_cStar;
     PIDController::IController::Ptr m_levelFlight;
-    PIDController::IController::Ptr m_aoaAutoTrim;
     PIDController::IController::Ptr m_roll;
     PIDController::IController::Ptr m_sideslip;
     PIDController::IController::Ptr m_throttleApproach;
