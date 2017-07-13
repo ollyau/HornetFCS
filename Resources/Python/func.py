@@ -1,14 +1,6 @@
 from collections import Sequence
 import numpy as np
 
-def ClipValue(input, min, max):
-    if input > max:
-        return max
-    elif input < min:
-        return min
-    else:
-        return input
-
 def LeadingEdgeFlaps(mach, aoa):
     if mach < 0.76 and aoa > 0.0:
         return aoa * 4.0 / 3.0
@@ -18,40 +10,48 @@ def LeadingEdgeFlaps(mach, aoa):
 def tefKias(kias):
     return (250.0 - kias) * 9.0 / 20.0
 
-def tefAoA(aoa):
-    if aoa > 0.0 and aoa < 11.0:
-        return aoa * 1.5
-    elif aoa >= 11.0 and aoa <= 16.0:
-        return 16.5
-    elif aoa > 16.0 and aoa <= 25.0:
-        return (25.0 - aoa) * 11.0 / 6.0
-    else:
+def tefMax(mach):
+    return 17.0 * np.clip(-0.28 + (4.62222222 * mach) - (4.14814815 * mach * mach), 0.0, 1.0)
+
+def aoaFalloff(mach):
+    return 15.7272727 * np.clip(1.14 - 0.23333333 * mach, 0.0, 1.0)
+
+def tefAoA(aoa, mach):
+    maxDeflection = tefMax(mach)
+    slopeRising = 1.5
+    slopeFalling = -11.0 / 6.0
+    flatStart = maxDeflection / slopeRising
+    flatEnd = aoaFalloff(mach)
+    aoaEnd = (-maxDeflection / slopeFalling) + flatEnd
+    if (aoa > 0.0 and aoa < flatStart):    
+        return aoa * slopeRising    
+    elif (aoa >= flatStart and aoa <= flatEnd):    
+        return maxDeflection    
+    elif (aoa > flatEnd and aoa <= aoaEnd):    
+        return np.clip((slopeFalling * (aoa - flatEnd)) + maxDeflection, 0.0, maxDeflection)    
+    else:    
         return 0.0
 
 def TrailingEdgeFlaps(mach, aoa):
     if isinstance(aoa, (Sequence, np.ndarray)):
         return [TrailingEdgeFlaps(mach, x) for x in aoa]
-    if mach < 0.9 and aoa > 0.0:
-        return tefAoA(aoa)
-    elif mach >= 0.9 and mach < 1.05 and aoa > 0.0:
-        return ClipValue(tefAoA(aoa), 0.0, 8.0)
-    else:
+    if (aoa > 0.0 and mach < 1.05):    
+        return tefAoA(aoa, mach)    
+    else:    
         return 0.0
 
 def ElevatorAoA(val, offset = 0.0):
-    # quintic fit -100,20,0,5.8,100,-3
-    # 5.8 - 0.115 x + 0.00027 x^2
-    return (5.8 + offset) - (0.115 * val) + (0.00027 * val * val)
+    # quintic fit {{-100,25},{0,5.8},{100,-10}}
+    # 5.8 - 0.175 x + 0.00017 x^2
+    return 5.8 + offset - (0.175 * val) + (0.00017 * val * val)
 
 def ElevatorPitchRate(val, offset = 0.0):
-    # quintic fit -100,25,0,0,100,-22.5
-    # - 0.2375 x + 0.000125 x^2
-    return offset - (0.2375 * val) + (0.000125 * val * val)
+    # '-1.1875e-05 x^3 + 0.000125 x^2 + -0.11875 x^1 + -3.07674029821e-15 x^0'
+    return offset - (0.11875 * val) + (0.000125 * val * val) - (1.1875e-5 * val * val * val)
 
 def ElevatorGForce(val, limitG = False, offset = 0.0):
-    # quintic fit -100,10,0,1,100,-5
-    # 1 - 0.075 x + 0.00015 x^2
-    result = (1.0 + offset) - (0.075 * val) + (0.00015 * val * val)
+    # '-3.75e-06 x^3 + 0.00015 x^2 + -0.0375 x^1 + 1.0 x^0'
+    result = 1.0 + offset - (0.0375 * val) + (0.00015 * val * val) - ( 3.75e-6 * val * val * val )
     return 5.5 if (limitG and result > 5.5) else result
 
 def AileronRollRate(val, offset = 0.0):

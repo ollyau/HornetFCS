@@ -85,8 +85,12 @@ def plottef(pdf, figsize, **kwargs):
 
     argx = np.linspace(0.0, 30.0, num=300)
 
-    ax.plot(argx, fcs.TrailingEdgeFlaps(0.6, argx), color='blue', linewidth=2, label=r'$M<0.9$')
-    ax.plot(argx, fcs.TrailingEdgeFlaps(0.9, argx), color='red', linewidth=1, label=r'$0.9\leq M<1.05$')
+    ax.plot(argx, fcs.TrailingEdgeFlaps(0.6, argx), color='blue', linewidth=2, label=r'$M\leq 0.6$')
+    #ax.plot(argx, fcs.TrailingEdgeFlaps(0.7, argx), color='yellow', linewidth=1, label=r'$M= 0.7$')
+    #ax.plot(argx, fcs.TrailingEdgeFlaps(0.8, argx), color='purple', linewidth=1, label=r'$M= 0.8$')
+    ax.plot(argx, fcs.TrailingEdgeFlaps(0.9, argx), color='red', linewidth=1, label=r'$M= 0.9$')
+    #ax.plot(argx, fcs.TrailingEdgeFlaps(1.0, argx), color='orange', linewidth=1, label=r'$M= 1.0$')
+    #ax.plot(argx, fcs.TrailingEdgeFlaps(1.05, argx), color='green', linewidth=1, label=r'$M\geq 1.05$')
 
     ax.legend(loc=1, **legendkw)
     ax.set_ylabel('deflection [deg]', labelpad=10)
