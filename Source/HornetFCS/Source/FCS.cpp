@@ -72,13 +72,6 @@ char* ATCModeLookup(ATCMode mode)
 
 //-----------------------------------------------------------------------------
 
-double ClipValue(double input, double min, double max)
-{
-    if (input > max) { return max; }
-    else if (input < min) { return min; }
-    else { return input; }
-}
-
 double LeadingEdgeFlaps(double mach, double aoa)
 {
     if (mach < 0.76 && aoa > 0.0)
@@ -96,19 +89,35 @@ double tefKias(double kias)
     return (250.0 - kias) * 9.0 / 20.0;
 }
 
-double tefAoA(double aoa)
+double tefMax(double mach)
 {
-    if (aoa > 0.0 && aoa < 11.0)
+    return 17.0 * std::clamp(-0.28 + (4.62222222 * mach) - (4.14814815 * mach * mach), 0.0, 1.0);
+}
+
+double aoaFalloff(double mach)
+{
+    return 15.7272727 * std::clamp(1.14 - 0.23333333 * mach, 0.0, 1.0);
+}
+
+double tefAoA(double aoa, double mach)
+{
+    auto maxDeflection = tefMax(mach);
+    auto slopeRising = 1.5;
+    auto slopeFalling = -11.0 / 6.0;
+    auto flatStart = maxDeflection / slopeRising;
+    auto flatEnd = aoaFalloff(mach);
+    auto aoaEnd = (-maxDeflection / slopeFalling) + flatEnd;
+    if (aoa > 0.0 && aoa < flatStart)
     {
-        return aoa * 1.5;
+        return aoa * slopeRising;
     }
-    else if (aoa >= 11.0 && aoa <= 16.0)
+    else if (aoa >= flatStart && aoa <= flatEnd)
     {
-        return 16.5;
+        return maxDeflection;
     }
-    else if (aoa > 16.0 && aoa <= 25.0)
+    else if (aoa > flatEnd && aoa <= aoaEnd)
     {
-        return (25.0 - aoa) * 11.0 / 6.0;
+        return std::clamp((slopeFalling * (aoa - flatEnd)) + maxDeflection, 0.0, maxDeflection);
     }
     else
     {
@@ -118,13 +127,9 @@ double tefAoA(double aoa)
 
 double TrailingEdgeFlaps(double mach, double aoa)
 {
-    if (mach < 0.9 && aoa > 0.0)
+    if (aoa > 0.0 && mach < 1.05)
     {
-        return tefAoA(aoa);
-    }
-    else if (mach >= 0.9 && mach < 1.05 && aoa > 0.0)
-    {
-        return ClipValue(tefAoA(aoa), 0.0, 8.0);
+        return tefAoA(aoa, mach);
     }
     else
     {
@@ -801,7 +806,7 @@ std::shared_ptr<Flaps> FBW::GetCurrentFlaps()
     }
     else
     {
-        lef = ClipValue(LeadingEdgeFlaps(m_flightData->AirspeedMach, m_flightData->AngleOfAttack), 0.0, 33.0);
+        lef = std::clamp(LeadingEdgeFlaps(m_flightData->AirspeedMach, m_flightData->AngleOfAttack), 0.0, 33.0);
         switch (m_flapSelection)
         {
         case 0:
@@ -810,7 +815,7 @@ std::shared_ptr<Flaps> FBW::GetCurrentFlaps()
         case 1:
             if (m_flightData->AirspeedTrue < 250.0)
             {
-                tef = ClipValue(tefKias(m_flightData->AirspeedTrue), 0.0, 30.0);
+                tef = std::clamp(tefKias(m_flightData->AirspeedTrue), 0.0, 30.0);
             }
             else
             {
@@ -820,7 +825,7 @@ std::shared_ptr<Flaps> FBW::GetCurrentFlaps()
         case 2:
             if (m_flightData->AirspeedTrue < 250.0)
             {
-                tef = ClipValue(tefKias(m_flightData->AirspeedTrue), 0.0, 45.0);
+                tef = std::clamp(tefKias(m_flightData->AirspeedTrue), 0.0, 45.0);
             }
             else
             {

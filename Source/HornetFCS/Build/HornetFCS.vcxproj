@@ -17,7 +17,8 @@
   </ImportGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>      
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
